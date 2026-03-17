@@ -530,8 +530,8 @@ function buildDiffTable(file, fileIdx, lang) {
 
       const oldTd = createEl('td', { className: 'line-num old', 'data-line': oldNum, textContent: oldNum });
       const newTd = createEl('td', { className: 'line-num new', 'data-line': newNum, textContent: newNum });
-      oldTd.addEventListener('click', handleLineClick);
-      newTd.addEventListener('click', handleLineClick);
+      oldTd.addEventListener('mousedown', handleLineMouseDown);
+      newTd.addEventListener('mousedown', handleLineMouseDown);
 
       const contentTd = createEl('td', { className: 'line-content' });
       const code = createEl('code', { className: langClass, textContent: line.content });
@@ -631,29 +631,60 @@ function buildInlineCommentRow(comment, fileIdx, filePath) {
   return row;
 }
 
-// === Line Selection ===
-function handleLineClick(e) {
+// === Line Selection (click + drag) ===
+function getRowInfo(row) {
+  return {
+    oldLine: parseInt(row.dataset.oldLine) || null,
+    newLine: parseInt(row.dataset.newLine) || null,
+    row
+  };
+}
+
+function handleLineMouseDown(e) {
+  e.preventDefault();
   const td = e.currentTarget;
   const lineNum = parseInt(td.dataset.line);
   if (!lineNum) return;
 
   const row = td.closest('tr');
   const fileIdx = parseInt(row.dataset.fileIdx);
-  const oldLine = parseInt(row.dataset.oldLine) || null;
-  const newLine = parseInt(row.dataset.newLine) || null;
+  const info = getRowInfo(row);
 
   if (e.shiftKey && state.selectionFileIdx === fileIdx && state.selectionStart !== null) {
-    state.selectionEnd = { oldLine, newLine, row };
+    state.selectionEnd = info;
     highlightSelection();
     showCommentPopover(e);
-  } else {
-    clearSelection();
-    state.selectionFileIdx = fileIdx;
-    state.selectionStart = { oldLine, newLine, row };
-    state.selectionEnd = { oldLine, newLine, row };
-    highlightSelection();
-    showCommentPopover(e);
+    return;
   }
+
+  clearSelection();
+  state.selectionFileIdx = fileIdx;
+  state.selectionStart = info;
+  state.selectionEnd = info;
+  highlightSelection();
+
+  let dragged = false;
+
+  const onMove = (e) => {
+    const el = document.elementFromPoint(e.clientX, e.clientY);
+    if (!el) return;
+    const lineNumTd = el.closest('.line-num');
+    if (!lineNumTd) return;
+    const moveRow = lineNumTd.closest('tr');
+    if (!moveRow || parseInt(moveRow.dataset.fileIdx) !== fileIdx) return;
+    dragged = true;
+    state.selectionEnd = getRowInfo(moveRow);
+    highlightSelection();
+  };
+
+  const onUp = (e) => {
+    document.removeEventListener('mousemove', onMove);
+    document.removeEventListener('mouseup', onUp);
+    showCommentPopover(e);
+  };
+
+  document.addEventListener('mousemove', onMove);
+  document.addEventListener('mouseup', onUp);
 }
 
 function clearSelection() {
@@ -1054,8 +1085,8 @@ async function handleExpand(e) {
       });
       const oldTd = createEl('td', { className: 'line-num old', 'data-line': oldNum, textContent: oldNum });
       const newTd = createEl('td', { className: 'line-num new', 'data-line': newNum, textContent: newNum });
-      oldTd.addEventListener('click', handleLineClick);
-      newTd.addEventListener('click', handleLineClick);
+      oldTd.addEventListener('mousedown', handleLineMouseDown);
+      newTd.addEventListener('mousedown', handleLineMouseDown);
       const contentTd = createEl('td', { className: 'line-content' });
       const code = createEl('code', { className: langClass, textContent: content });
       if (langClass) hljs.highlightElement(code);
@@ -1094,8 +1125,8 @@ async function handleExpand(e) {
       });
       const oldTd = createEl('td', { className: 'line-num old', 'data-line': oldNum, textContent: oldNum });
       const newTd = createEl('td', { className: 'line-num new', 'data-line': newNum, textContent: newNum });
-      oldTd.addEventListener('click', handleLineClick);
-      newTd.addEventListener('click', handleLineClick);
+      oldTd.addEventListener('mousedown', handleLineMouseDown);
+      newTd.addEventListener('mousedown', handleLineMouseDown);
       const contentTd = createEl('td', { className: 'line-content' });
       const code = createEl('code', { className: langClass, textContent: content });
       if (langClass) hljs.highlightElement(code);
