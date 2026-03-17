@@ -48,6 +48,8 @@ html, body {
   display: flex; align-items: center;
   padding: 0 16px; gap: 16px;
   z-index: 100;
+  flex-wrap: wrap;
+  overflow: hidden;
 }
 .header-left { display: flex; align-items: center; flex-shrink: 0; }
 .logo { font-weight: 700; font-size: 15px; color: var(--text); white-space: nowrap; }
@@ -391,4 +393,24 @@ select { min-width: 80px; cursor: pointer; text-overflow: ellipsis; overflow: hi
 @media (max-width: 900px) {
   #sidebar { display: none; }
   #main-content { left: 0; }
+}
+
+@media (max-width: 700px) {
+  html, body { overflow: auto; }
+  #header {
+    position: sticky;
+    flex-direction: column;
+    align-items: stretch;
+    padding: 8px 12px;
+    gap: 6px;
+    height: auto;
+  }
+  .header-left { justify-content: center; }
+  .header-center { flex-wrap: wrap; justify-content: center; }
+  .header-right { justify-content: center; }
+  .control-group { flex-wrap: wrap; justify-content: center; }
+  #main-content {
+    position: relative;
+    top: 0; left: 0;
+  }
 }
