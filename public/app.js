@@ -141,8 +141,24 @@ document.addEventListener('DOMContentLoaded', async () => {
   pathInput.addEventListener('keydown', e => { if (e.key === 'Enter') loadRepo(); });
 
   document.getElementById('btn-diff-comment').addEventListener('click', showDiffCommentForm);
-  document.getElementById('btn-copy-comments').addEventListener('click', () => exportComments('clipboard'));
-  document.getElementById('btn-save-comments').addEventListener('click', () => exportComments('file'));
+
+  let exportMode = 'clipboard';
+  const exportLabel = document.getElementById('export-mode-label');
+  const exportDropdown = document.getElementById('export-dropdown');
+
+  document.getElementById('btn-export').addEventListener('click', () => exportComments(exportMode));
+  document.getElementById('btn-export-toggle').addEventListener('click', (e) => {
+    e.stopPropagation();
+    exportDropdown.classList.toggle('hidden');
+  });
+  document.querySelectorAll('.split-btn-option').forEach(btn => {
+    btn.addEventListener('click', () => {
+      exportMode = btn.dataset.mode;
+      exportLabel.textContent = exportMode === 'clipboard' ? 'Copy' : 'Save';
+      exportDropdown.classList.add('hidden');
+    });
+  });
+  document.addEventListener('click', () => exportDropdown.classList.add('hidden'));
 
   const mainContent = document.getElementById('main-content');
   mainContent.addEventListener('scroll', () => {

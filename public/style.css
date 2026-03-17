@@ -91,6 +91,42 @@ select { min-width: 80px; cursor: pointer; text-overflow: ellipsis; overflow: hi
 .btn-danger { background: #da3633; border-color: #f85149; color: #fff; }
 .btn-danger:hover { background: #f85149; }
 
+/* Split button */
+.split-btn { position: relative; display: flex; }
+.split-btn-arrow {
+  border-radius: 6px 0 0 6px;
+  border-right: 1px solid rgba(255,255,255,0.15);
+  padding: 4px 6px;
+  font-size: 10px;
+}
+.split-btn-action { border-radius: 0 6px 6px 0; }
+.split-btn-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  margin-top: 4px;
+  background: var(--surface-raised);
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+  z-index: 200;
+  overflow: hidden;
+}
+.split-btn-dropdown.hidden { display: none; }
+.split-btn-option {
+  display: block;
+  width: 100%;
+  padding: 6px 12px;
+  background: none;
+  border: none;
+  color: var(--text);
+  font-size: 13px;
+  cursor: pointer;
+  text-align: left;
+  font-family: var(--font-sans);
+}
+.split-btn-option:hover { background: var(--border); }
+
 /* === Sidebar === */
 #sidebar {
   position: fixed;

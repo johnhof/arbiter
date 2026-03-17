@@ -31,8 +31,14 @@
     </div>
     <div class="header-right">
       <button id="btn-diff-comment" class="btn btn-secondary" title="Add overall comment">Comment</button>
-      <button id="btn-copy-comments" class="btn btn-accent" title="Copy comments to clipboard">Copy</button>
-      <button id="btn-save-comments" class="btn btn-accent" title="Save comments to file">Save</button>
+      <div class="split-btn">
+        <button id="btn-export-toggle" class="split-btn-arrow btn btn-accent">&#x25BC;</button>
+        <button id="btn-export" class="split-btn-action btn btn-accent"><span id="export-mode-label">Copy</span> Prompt</button>
+        <div id="export-dropdown" class="split-btn-dropdown hidden">
+          <button class="split-btn-option" data-mode="clipboard">Copy</button>
+          <button class="split-btn-option" data-mode="file">Save</button>
+        </div>
+      </div>
     </div>
   </header>
 
