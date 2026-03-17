@@ -44,7 +44,6 @@ html, body {
   position: fixed; top: 0; left: 0; right: 0;
   min-height: var(--header-height);
   background: var(--surface);
-  border-bottom: 1px solid var(--border);
   display: flex; align-items: center;
   padding: 4px 16px; gap: 8px 16px;
   z-index: 100;
@@ -100,7 +99,6 @@ select { min-width: 80px; cursor: pointer; text-overflow: ellipsis; overflow: hi
   bottom: 0;
   width: var(--sidebar-width);
   background: var(--surface);
-  border-right: 1px solid var(--border);
   overflow-y: auto;
   z-index: 50;
   transition: width 0.15s;
@@ -116,7 +114,6 @@ select { min-width: 80px; cursor: pointer; text-overflow: ellipsis; overflow: hi
   color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  border-bottom: 1px solid var(--border);
   display: flex; align-items: center; gap: 8px;
 }
 .sidebar-toggle {
@@ -206,7 +203,6 @@ select { min-width: 80px; cursor: pointer; text-overflow: ellipsis; overflow: hi
 /* === Diff File Boxes === */
 .diff-file {
   background: var(--surface);
-  border: 1px solid var(--border);
   border-radius: 8px;
   margin-bottom: 16px;
   overflow: hidden;
@@ -216,7 +212,6 @@ select { min-width: 80px; cursor: pointer; text-overflow: ellipsis; overflow: hi
   display: flex; align-items: center; gap: 8px;
   padding: 8px 16px;
   background: var(--surface-raised);
-  border-bottom: 1px solid var(--border);
   font-family: var(--font-mono);
   font-size: 13px;
   position: sticky;
@@ -290,7 +285,6 @@ select { min-width: 80px; cursor: pointer; text-overflow: ellipsis; overflow: hi
   color: var(--text-muted);
   user-select: none;
   cursor: pointer;
-  border-right: 1px solid var(--border);
   font-size: 12px;
   opacity: 0.6;
 }
@@ -315,8 +309,6 @@ select { min-width: 80px; cursor: pointer; text-overflow: ellipsis; overflow: hi
   padding: 4px 12px;
   color: var(--text-muted);
   font-size: 12px;
-  border-top: 1px solid var(--border);
-  border-bottom: 1px solid var(--border);
 }
 
 /* Expand buttons */
@@ -324,8 +316,6 @@ select { min-width: 80px; cursor: pointer; text-overflow: ellipsis; overflow: hi
   text-align: center;
   padding: 2px 0;
   background: var(--surface-raised);
-  border-top: 1px solid var(--border);
-  border-bottom: 1px solid var(--border);
 }
 .expand-btn {
   background: none;
@@ -344,7 +334,6 @@ select { min-width: 80px; cursor: pointer; text-overflow: ellipsis; overflow: hi
 
 .comment-form {
   background: var(--comment-bg);
-  border: 1px solid var(--comment-border);
   border-radius: 6px;
   padding: 8px;
 }
@@ -391,7 +380,6 @@ select { min-width: 80px; cursor: pointer; text-overflow: ellipsis; overflow: hi
 /* File-level & diff-level comments */
 .file-comments, .diff-comments {
   padding: 8px 16px;
-  border-bottom: 1px solid var(--border);
 }
 .diff-comment-area { margin-bottom: 16px; }
 
@@ -405,7 +393,6 @@ select { min-width: 80px; cursor: pointer; text-overflow: ellipsis; overflow: hi
   flex-direction: column;
   align-items: center;
   background: var(--surface-raised);
-  border: 1px solid var(--border);
   border-radius: 6px;
   padding: 4px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.3);
@@ -434,7 +421,6 @@ select { min-width: 80px; cursor: pointer; text-overflow: ellipsis; overflow: hi
   position: fixed;
   z-index: 200;
   background: var(--surface-raised);
-  border: 1px solid var(--border);
   border-radius: 6px;
   padding: 4px;
   box-shadow: 0 4px 12px rgba(0,0,0,0.4);
