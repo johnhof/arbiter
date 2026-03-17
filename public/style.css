@@ -228,6 +228,7 @@ select { min-width: 80px; cursor: pointer; text-overflow: ellipsis; overflow: hi
   flex-shrink: 0;
 }
 .file-collapse-toggle.collapsed { transform: rotate(-90deg); }
+.diff-file-body { position: relative; z-index: 0; }
 .diff-file-body.collapsed { display: none; }
 .file-header .file-path { flex: 1; word-break: break-all; }
 .file-header .file-path .old-path { color: var(--text-muted); text-decoration: line-through; margin-right: 8px; }
