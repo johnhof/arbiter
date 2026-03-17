@@ -113,6 +113,13 @@ function autoSizeInput(el) {
   el.style.width = (_sizer.offsetWidth + pad) + 'px';
 }
 
+// === Sync layout to dynamic header height ===
+function syncHeaderHeight() {
+  const h = document.getElementById('header').offsetHeight;
+  document.documentElement.style.setProperty('--header-height', h + 'px');
+}
+new ResizeObserver(syncHeaderHeight).observe(document.getElementById('header'));
+
 // === Init ===
 document.addEventListener('DOMContentLoaded', async () => {
   const pathInput = document.getElementById('base-path');
@@ -137,6 +144,13 @@ document.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('btn-save-comments').addEventListener('click', () => exportComments('file'));
 
   document.getElementById('main-content').addEventListener('scroll', updateActiveFile);
+
+  document.getElementById('sidebar-toggle').addEventListener('click', () => {
+    const sidebar = document.getElementById('sidebar');
+    sidebar.classList.toggle('collapsed');
+    const mainContent = document.getElementById('main-content');
+    mainContent.style.left = sidebar.classList.contains('collapsed') ? '40px' : '';
+  });
 });
 
 async function loadRepo() {
@@ -475,12 +489,14 @@ function buildInlineCommentRow(comment, fileIdx, filePath) {
   block.dataset.commentId = comment.id;
 
   const meta = createEl('div', { className: 'comment-meta' });
+  const toggle = createEl('span', { className: 'comment-collapse-toggle', textContent: '\u25BC' });
+  meta.appendChild(toggle);
   meta.appendChild(createEl('span', { textContent: 'Lines ' + (comment.startOld || comment.startNew) + '\u2013' + (comment.endOld || comment.endNew) }));
   meta.appendChild(createEl('span', { textContent: new Date(comment.timestamp).toLocaleString() }));
   block.appendChild(meta);
 
-  const textDiv = createEl('div', { className: 'comment-text', textContent: comment.text });
-  block.appendChild(textDiv);
+  const body = createEl('div', { className: 'comment-body' });
+  body.appendChild(createEl('div', { className: 'comment-text', textContent: comment.text }));
 
   const actions = createEl('div', { className: 'comment-actions' });
   const editBtn = createEl('button', { className: 'btn btn-small btn-secondary', textContent: 'Edit' });
@@ -489,7 +505,14 @@ function buildInlineCommentRow(comment, fileIdx, filePath) {
   delBtn.addEventListener('click', () => deleteInlineComment(filePath, comment.id));
   actions.appendChild(editBtn);
   actions.appendChild(delBtn);
-  block.appendChild(actions);
+  body.appendChild(actions);
+  block.appendChild(body);
+
+  meta.style.cursor = 'pointer';
+  meta.addEventListener('click', () => {
+    body.classList.toggle('collapsed');
+    toggle.classList.toggle('collapsed');
+  });
 
   td.appendChild(block);
   row.appendChild(td);
@@ -661,11 +684,14 @@ function renderFileCommentBlocks(container, filePath) {
     block.dataset.commentId = c.id;
 
     const meta = createEl('div', { className: 'comment-meta' });
+    const toggle = createEl('span', { className: 'comment-collapse-toggle', textContent: '\u25BC' });
+    meta.appendChild(toggle);
     meta.appendChild(createEl('span', { textContent: 'File comment' }));
     meta.appendChild(createEl('span', { textContent: new Date(c.timestamp).toLocaleString() }));
     block.appendChild(meta);
 
-    block.appendChild(createEl('div', { className: 'comment-text', textContent: c.text }));
+    const body = createEl('div', { className: 'comment-body' });
+    body.appendChild(createEl('div', { className: 'comment-text', textContent: c.text }));
 
     const actions = createEl('div', { className: 'comment-actions' });
     const editBtn = createEl('button', { className: 'btn btn-small btn-secondary', textContent: 'Edit' });
@@ -674,7 +700,14 @@ function renderFileCommentBlocks(container, filePath) {
     delBtn.addEventListener('click', () => deleteFileComment(filePath, c.id));
     actions.appendChild(editBtn);
     actions.appendChild(delBtn);
-    block.appendChild(actions);
+    body.appendChild(actions);
+    block.appendChild(body);
+
+    meta.style.cursor = 'pointer';
+    meta.addEventListener('click', () => {
+      body.classList.toggle('collapsed');
+      toggle.classList.toggle('collapsed');
+    });
 
     container.appendChild(block);
   }
@@ -722,11 +755,14 @@ function renderDiffComments() {
     block.dataset.commentId = c.id;
 
     const meta = createEl('div', { className: 'comment-meta' });
+    const toggle = createEl('span', { className: 'comment-collapse-toggle', textContent: '\u25BC' });
+    meta.appendChild(toggle);
     meta.appendChild(createEl('span', { textContent: 'Overall comment' }));
     meta.appendChild(createEl('span', { textContent: new Date(c.timestamp).toLocaleString() }));
     block.appendChild(meta);
 
-    block.appendChild(createEl('div', { className: 'comment-text', textContent: c.text }));
+    const body = createEl('div', { className: 'comment-body' });
+    body.appendChild(createEl('div', { className: 'comment-text', textContent: c.text }));
 
     const actions = createEl('div', { className: 'comment-actions' });
     const editBtn = createEl('button', { className: 'btn btn-small btn-secondary', textContent: 'Edit' });
@@ -735,7 +771,14 @@ function renderDiffComments() {
     delBtn.addEventListener('click', () => deleteDiffComment(c.id));
     actions.appendChild(editBtn);
     actions.appendChild(delBtn);
-    block.appendChild(actions);
+    body.appendChild(actions);
+    block.appendChild(body);
+
+    meta.style.cursor = 'pointer';
+    meta.addEventListener('click', () => {
+      body.classList.toggle('collapsed');
+      toggle.classList.toggle('collapsed');
+    });
 
     wrapper.appendChild(block);
   }

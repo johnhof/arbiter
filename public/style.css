@@ -42,14 +42,13 @@ html, body {
 /* === Header === */
 #header {
   position: fixed; top: 0; left: 0; right: 0;
-  height: var(--header-height);
+  min-height: var(--header-height);
   background: var(--surface);
   border-bottom: 1px solid var(--border);
   display: flex; align-items: center;
-  padding: 0 16px; gap: 16px;
+  padding: 4px 16px; gap: 8px 16px;
   z-index: 100;
   flex-wrap: wrap;
-  overflow: hidden;
 }
 .header-left { display: flex; align-items: center; flex-shrink: 0; }
 .logo { font-weight: 700; font-size: 15px; color: var(--text); white-space: nowrap; }
@@ -104,7 +103,12 @@ select { min-width: 80px; cursor: pointer; text-overflow: ellipsis; overflow: hi
   border-right: 1px solid var(--border);
   overflow-y: auto;
   z-index: 50;
+  transition: width 0.15s;
 }
+#sidebar.collapsed { width: 40px; overflow: hidden; }
+#sidebar.collapsed #file-tree { display: none; }
+#sidebar.collapsed .sidebar-header span:not(.sidebar-toggle) { display: none; }
+#sidebar.collapsed .sidebar-toggle { transform: rotate(180deg); }
 .sidebar-header {
   padding: 12px 16px;
   font-size: 13px;
@@ -115,6 +119,14 @@ select { min-width: 80px; cursor: pointer; text-overflow: ellipsis; overflow: hi
   border-bottom: 1px solid var(--border);
   display: flex; align-items: center; gap: 8px;
 }
+.sidebar-toggle {
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--text-muted);
+  transition: transform 0.15s;
+  flex-shrink: 0;
+}
+.sidebar-toggle:hover { color: var(--text); }
 .badge {
   background: var(--border);
   color: var(--text-muted);
@@ -365,6 +377,15 @@ select { min-width: 80px; cursor: pointer; text-overflow: ellipsis; overflow: hi
 }
 .comment-block .comment-text { font-size: 13px; white-space: pre-wrap; line-height: 1.5; }
 .comment-block .comment-actions { display: flex; gap: 6px; margin-top: 6px; }
+.comment-body.collapsed { display: none; }
+.comment-collapse-toggle {
+  font-size: 10px;
+  cursor: pointer;
+  color: var(--text-muted);
+  transition: transform 0.15s;
+  flex-shrink: 0;
+}
+.comment-collapse-toggle.collapsed { transform: rotate(-90deg); }
 
 /* File-level & diff-level comments */
 .file-comments, .diff-comments {
