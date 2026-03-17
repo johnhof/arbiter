@@ -1162,11 +1162,17 @@ function updateCommentNavDisplay() {
 function getVisibleCommentIndex(els) {
   if (els.length === 0) return 0;
   const main = document.getElementById('main-content');
-  const scrollTop = main.scrollTop;
-  const viewTop = scrollTop;
+  const mainRect = main.getBoundingClientRect();
+  // Find the first comment whose bottom is within or below the visible area
+  for (let i = 0; i < els.length; i++) {
+    const rect = els[i].getBoundingClientRect();
+    if (rect.bottom >= mainRect.top && rect.top <= mainRect.bottom) return i;
+  }
+  // Fallback: find the last comment above the viewport
   let best = 0;
   for (let i = 0; i < els.length; i++) {
-    if (els[i].offsetTop - main.offsetTop <= viewTop + 80) best = i;
+    const rect = els[i].getBoundingClientRect();
+    if (rect.bottom < mainRect.top) best = i;
     else break;
   }
   return best;
