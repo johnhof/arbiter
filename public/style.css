@@ -98,7 +98,7 @@ select { min-width: 80px; cursor: pointer; text-overflow: ellipsis; overflow: hi
   left: 0;
   bottom: 0;
   width: var(--sidebar-width);
-  background: var(--surface);
+  background: var(--bg);
   overflow-y: auto;
   z-index: 50;
   transition: width 0.15s;
@@ -165,7 +165,7 @@ select { min-width: 80px; cursor: pointer; text-overflow: ellipsis; overflow: hi
   color: var(--text-muted);
   text-decoration: none;
 }
-.tree-file:hover { background: var(--surface-raised); color: var(--text); }
+.tree-file:hover { background: var(--bg); color: var(--text); }
 .tree-file.active { background: rgba(88,166,255,0.15); color: var(--accent); }
 .tree-file.generated { opacity: 0.5; font-style: italic; }
 
