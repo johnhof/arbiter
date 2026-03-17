@@ -1,5 +1,5 @@
 /* =========================================================
-   Diff Reviewer — Frontend
+   Arbiter — Frontend
    All git-sourced content is escaped via escapeHtml() before
    innerHTML insertion to prevent XSS.
    ========================================================= */
@@ -20,7 +20,7 @@ const state = {
 
 // === Helpers ===
 function storageKey() {
-  return `diffreviewer:${state.basePath}:${state.sourceBranch}:${state.targetBranch}`;
+  return `arbiter:${state.basePath}:${state.sourceBranch}:${state.targetBranch}`;
 }
 
 function loadComments() {
@@ -201,7 +201,7 @@ function buildTree(parent, node, depth) {
 
   for (const folder of folders) {
     const div = createEl('div', { className: 'tree-folder' });
-    const header = createEl('div', { className: 'tree-folder-header', style: { paddingLeft: (depth * 12 + 8) + 'px' } });
+    const header = createEl('div', { className: 'tree-folder-header', style: { paddingLeft: (depth * 2 + 8) + 'px' } });
     const arrow = createEl('span', { className: 'arrow', textContent: '\u25BC' });
     const name = createEl('span', { textContent: folder.name + '/' });
     header.appendChild(arrow);
@@ -227,7 +227,7 @@ function buildTree(parent, node, depth) {
       className: 'tree-file' + (f.generated ? ' generated' : ''),
       'data-file-idx': file.data.idx,
       'data-file-path': f.path,
-      style: { paddingLeft: (depth * 12 + 20) + 'px' }
+      style: { paddingLeft: (depth * 2 + 20) + 'px' }
     });
 
     const icon = createEl('span', { className: 'file-status-icon ' + f.status, textContent: statusIcon(f.status) });
@@ -314,7 +314,9 @@ function buildFileBox(file, idx) {
   } else if (file.binary) {
     box.appendChild(createEl('div', { className: 'binary-notice', textContent: 'Binary file changed' }));
   } else {
-    box.appendChild(buildDiffTable(file, idx, lang));
+    const wrapper = createEl('div', { className: 'diff-table-wrapper' });
+    wrapper.appendChild(buildDiffTable(file, idx, lang));
+    box.appendChild(wrapper);
   }
 
   return box;

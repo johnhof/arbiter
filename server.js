@@ -197,7 +197,16 @@ app.get('/api/file-content', (req, res) => {
 });
 
 const preferredPort = parseInt(process.argv.find((a, i) => process.argv[i-1] === '--port') || '3000');
-const initialPath = process.argv.find((a, i) => process.argv[i-1] === '--path') || '';
+const cliPath = process.argv.find((a, i) => process.argv[i-1] === '--path') || '';
+
+let initialPath = cliPath;
+if (!initialPath) {
+  try {
+    initialPath = execFileSync('git', ['rev-parse', '--show-toplevel'], { encoding: 'utf-8' }).trim();
+  } catch {
+    initialPath = '';
+  }
+}
 
 app.get('/api/initial-path', (req, res) => {
   res.json({ path: initialPath });
@@ -205,7 +214,7 @@ app.get('/api/initial-path', (req, res) => {
 
 function startServer(port) {
   const server = app.listen(port, '0.0.0.0', () => {
-    console.log(`\n  Diff Reviewer running at: http://localhost:${port}\n`);
+    console.log(`\n  Arbiter running at: http://localhost:${port}\n`);
     if (initialPath) console.log(`  Pre-selected path: ${initialPath}\n`);
   }).on('error', (e) => {
     if (e.code === 'EADDRINUSE') startServer(port + 1);

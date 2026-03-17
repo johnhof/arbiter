@@ -1,4 +1,4 @@
-# Diff Reviewer — Agent Design Reference
+# Arbiter — Agent Design Reference
 
 ## What It Is
 
@@ -7,11 +7,11 @@ A self-contained, browser-based git diff viewer with GitHub-style inline comment
 ## How to Run
 
 ```bash
-# From the diff-reviewer directory
+# From the arbiter directory
 node server.js --path /path/to/repo --port 3000
 
 # Or from elsewhere
-node /home/ubuntu/athena/.shared/diff-reviewer/server.js --path /home/ubuntu/athena/platform-go
+node /home/ubuntu/athena/.shared/arbiter/server.js --path /home/ubuntu/athena/platform-go
 ```
 
 Opens at `http://localhost:3000` (auto-increments port if taken).
@@ -29,7 +29,7 @@ No TypeScript, no bundler, no React. Everything is imperative DOM manipulation v
 ## File Map
 
 ```
-.shared/diff-reviewer/
+.shared/arbiter/
 ├── server.js           # Express server — git CLI wrapper + static files
 ├── package.json        # Only dependency: express
 ├── public/
