@@ -208,7 +208,19 @@ select { min-width: 80px; cursor: pointer; text-overflow: ellipsis; overflow: hi
   position: sticky;
   top: 0;
   z-index: 10;
+  cursor: pointer;
+  user-select: none;
 }
+.file-collapse-toggle {
+  font-size: 10px;
+  width: 16px;
+  text-align: center;
+  color: var(--text-muted);
+  transition: transform 0.15s;
+  flex-shrink: 0;
+}
+.file-collapse-toggle.collapsed { transform: rotate(-90deg); }
+.diff-file-body.collapsed { display: none; }
 .file-header .file-path { flex: 1; word-break: break-all; }
 .file-header .file-path .old-path { color: var(--text-muted); text-decoration: line-through; margin-right: 8px; }
 .file-status-badge {

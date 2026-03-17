@@ -310,6 +310,10 @@ function buildFileBox(file, idx) {
 
   // Header
   const header = createEl('div', { className: 'file-header' });
+
+  const toggle = createEl('span', { className: 'file-collapse-toggle', textContent: '\u25BC' });
+  header.appendChild(toggle);
+
   const pathSpan = createEl('span', { className: 'file-path' });
   if (file.status === 'renamed' && file.oldPath !== file.path) {
     const oldSpan = createEl('span', { className: 'old-path', textContent: file.oldPath });
@@ -321,25 +325,36 @@ function buildFileBox(file, idx) {
   header.appendChild(createEl('span', { className: 'file-status-badge ' + file.status, textContent: file.status }));
 
   const commentBtn = createEl('button', { className: 'btn btn-small btn-secondary', textContent: 'Comment' });
-  commentBtn.addEventListener('click', () => showFileCommentForm(idx, file.path));
+  commentBtn.addEventListener('click', (e) => { e.stopPropagation(); showFileCommentForm(idx, file.path); });
   header.appendChild(commentBtn);
   box.appendChild(header);
+
+  // Collapsible body
+  const body = createEl('div', { className: 'diff-file-body' });
 
   // File comments area
   const fileCommentsDiv = createEl('div', { className: 'file-comments', id: 'file-comments-' + idx });
   renderFileCommentBlocks(fileCommentsDiv, file.path);
-  box.appendChild(fileCommentsDiv);
+  body.appendChild(fileCommentsDiv);
 
-  // Body
+  // Diff content
   if (file.generated) {
-    box.appendChild(createEl('div', { className: 'generated-notice', textContent: 'Generated file \u2014 content hidden' }));
+    body.appendChild(createEl('div', { className: 'generated-notice', textContent: 'Generated file \u2014 content hidden' }));
   } else if (file.binary) {
-    box.appendChild(createEl('div', { className: 'binary-notice', textContent: 'Binary file changed' }));
+    body.appendChild(createEl('div', { className: 'binary-notice', textContent: 'Binary file changed' }));
   } else {
     const wrapper = createEl('div', { className: 'diff-table-wrapper' });
     wrapper.appendChild(buildDiffTable(file, idx, lang));
-    box.appendChild(wrapper);
+    body.appendChild(wrapper);
   }
+
+  box.appendChild(body);
+
+  // Toggle collapse
+  header.addEventListener('click', () => {
+    body.classList.toggle('collapsed');
+    toggle.classList.toggle('collapsed');
+  });
 
   return box;
 }
