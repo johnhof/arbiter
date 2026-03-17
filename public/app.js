@@ -144,9 +144,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('btn-copy-comments').addEventListener('click', () => exportComments('clipboard'));
   document.getElementById('btn-save-comments').addEventListener('click', () => exportComments('file'));
 
-  document.getElementById('main-content').addEventListener('scroll', () => {
+  const mainContent = document.getElementById('main-content');
+  mainContent.addEventListener('scroll', () => {
     updateActiveFile();
     updateCommentNavPosition();
+    mainContent.classList.toggle('scrolled', mainContent.scrollTop > 16);
   });
 
   document.getElementById('sidebar-toggle').addEventListener('click', () => {
