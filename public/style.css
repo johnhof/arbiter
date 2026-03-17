@@ -99,7 +99,7 @@ select { min-width: 80px; cursor: pointer; text-overflow: ellipsis; overflow: hi
   padding: 4px 6px;
   font-size: 10px;
 }
-.split-btn-action { border-radius: 0 6px 6px 0; background: #1a5fcb; border-color: #388bfd; }
+.split-btn-action { border-radius: 0 6px 6px 0; background: #1a5fcb; border-color: #388bfd; min-width: 100px; text-align: center; }
 .split-btn-dropdown {
   position: absolute;
   top: 100%;
