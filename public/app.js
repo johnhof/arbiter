@@ -150,8 +150,12 @@ document.addEventListener('DOMContentLoaded', async () => {
   } catch {}
 
   pathInput.addEventListener('input', () => autoSizeInput(pathInput));
-  targetSelect.addEventListener('change', () => { autoSizeInput(targetSelect); state.targetBranch = targetSelect.value; saveSession(); loadDiff(); });
-  sourceSelect.addEventListener('change', () => { autoSizeInput(sourceSelect); state.sourceBranch = sourceSelect.value; saveSession(); loadDiff(); });
+  function onTargetChange() { autoSizeInput(targetSelect); state.targetBranch = targetSelect.value; saveSession(); loadDiff(); }
+  function onSourceChange() { autoSizeInput(sourceSelect); state.sourceBranch = sourceSelect.value; saveSession(); loadDiff(); }
+  targetSelect.addEventListener('change', onTargetChange);
+  targetSelect.addEventListener('input', onTargetChange);
+  sourceSelect.addEventListener('change', onSourceChange);
+  sourceSelect.addEventListener('input', onSourceChange);
 
   btnLoad.addEventListener('click', loadRepo);
   pathInput.addEventListener('keydown', e => { if (e.key === 'Enter') loadRepo(); });
