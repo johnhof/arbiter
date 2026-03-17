@@ -213,6 +213,7 @@ select { min-width: 80px; cursor: pointer; text-overflow: ellipsis; overflow: hi
   display: flex; align-items: center; gap: 8px;
   padding: 8px 16px;
   background: var(--surface-raised);
+  border-top: 1px solid #0d1117;
   font-family: var(--font-mono);
   font-size: 13px;
   position: sticky;
