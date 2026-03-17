@@ -1,0 +1,12 @@
+{
+  "name": "diff-reviewer",
+  "version": "1.0.0",
+  "description": "Browser-based git diff review UI with inline commenting",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2"
+  }
+}

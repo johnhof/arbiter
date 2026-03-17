@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Diff Reviewer</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+</head>
+<body>
+  <header id="header">
+    <div class="header-left">
+      <span class="logo">Diff Reviewer</span>
+    </div>
+    <div class="header-controls">
+      <div class="control-group">
+        <label for="base-path">Path</label>
+        <input type="text" id="base-path" placeholder="/path/to/repo" spellcheck="false">
+        <button id="btn-load" class="btn btn-primary">Load</button>
+      </div>
+      <div class="control-group">
+        <label for="target-branch">Target</label>
+        <select id="target-branch"><option>main</option></select>
+      </div>
+      <div class="control-group">
+        <label for="source-branch">Source</label>
+        <select id="source-branch"><option>—</option></select>
+      </div>
+      <div class="control-group">
+        <button id="btn-diff-comment" class="btn btn-secondary" title="Add overall comment">Comment</button>
+        <button id="btn-copy-comments" class="btn btn-accent" title="Copy comments to clipboard">Copy</button>
+        <button id="btn-save-comments" class="btn btn-accent" title="Save comments to file">Save</button>
+      </div>
+    </div>
+  </header>
+
+  <aside id="sidebar">
+    <div class="sidebar-header">Files <span id="file-count" class="badge">0</span></div>
+    <div id="file-tree"></div>
+  </aside>
+
+  <main id="main-content">
+    <div id="diff-comment-area"></div>
+    <div id="diff-container">
+      <div id="empty-state" class="empty-state">
+        Enter a repository path and click Load to view a diff.
+      </div>
+    </div>
+  </main>
+
+  <div id="comment-popover" class="comment-popover hidden">
+    <button id="btn-add-comment" class="btn btn-primary btn-small">+ Comment</button>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
