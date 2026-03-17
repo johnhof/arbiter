@@ -36,6 +36,14 @@ function saveComments() {
   if (typeof updateCommentNav === 'function') updateCommentNav();
 }
 
+function saveSession() {
+  localStorage.setItem('arbiter:session', JSON.stringify({
+    path: state.basePath,
+    target: state.targetBranch,
+    source: state.sourceBranch,
+  }));
+}
+
 function getFileComments(filePath) {
   if (!state.comments.files[filePath]) {
     state.comments.files[filePath] = { file: [], inline: [] };
@@ -129,13 +137,21 @@ document.addEventListener('DOMContentLoaded', async () => {
   const sourceSelect = document.getElementById('source-branch');
 
   try {
+    const saved = JSON.parse(localStorage.getItem('arbiter:session') || '{}');
     const init = await api('/api/initial-path');
-    if (init.path) { pathInput.value = init.path; autoSizeInput(pathInput); loadRepo(); }
+    const initialPath = saved.path || init.path;
+    if (initialPath) {
+      pathInput.value = initialPath;
+      autoSizeInput(pathInput);
+      state._savedTarget = saved.target || '';
+      state._savedSource = saved.source || '';
+      loadRepo();
+    }
   } catch {}
 
   pathInput.addEventListener('input', () => autoSizeInput(pathInput));
-  targetSelect.addEventListener('change', () => { autoSizeInput(targetSelect); state.targetBranch = targetSelect.value; loadDiff(); });
-  sourceSelect.addEventListener('change', () => { autoSizeInput(sourceSelect); state.sourceBranch = sourceSelect.value; loadDiff(); });
+  targetSelect.addEventListener('change', () => { autoSizeInput(targetSelect); state.targetBranch = targetSelect.value; saveSession(); loadDiff(); });
+  sourceSelect.addEventListener('change', () => { autoSizeInput(sourceSelect); state.sourceBranch = sourceSelect.value; saveSession(); loadDiff(); });
 
   btnLoad.addEventListener('click', loadRepo);
   pathInput.addEventListener('keydown', e => { if (e.key === 'Enter') loadRepo(); });
@@ -218,15 +234,20 @@ async function loadRepo() {
 
   targetSelect.textContent = '';
   sourceSelect.textContent = '';
+  const savedTarget = state._savedTarget || '';
+  const savedSource = state._savedSource || '';
+  state._savedTarget = '';
+  state._savedSource = '';
+
   state.branches.forEach(b => {
     const opt1 = document.createElement('option');
     opt1.value = b; opt1.textContent = b;
-    if (b === 'main') opt1.selected = true;
+    if (savedTarget ? b === savedTarget : b === 'main') opt1.selected = true;
     targetSelect.appendChild(opt1);
 
     const opt2 = document.createElement('option');
     opt2.value = b; opt2.textContent = b;
-    if (b === state.currentBranch) opt2.selected = true;
+    if (savedSource ? b === savedSource : b === state.currentBranch) opt2.selected = true;
     sourceSelect.appendChild(opt2);
   });
 
@@ -236,6 +257,8 @@ async function loadRepo() {
   autoSizeInput(pathInput);
   autoSizeInput(targetSelect);
   autoSizeInput(sourceSelect);
+
+  saveSession();
 
   await loadDiff();
 }
