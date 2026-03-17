@@ -144,7 +144,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('btn-copy-comments').addEventListener('click', () => exportComments('clipboard'));
   document.getElementById('btn-save-comments').addEventListener('click', () => exportComments('file'));
 
-  document.getElementById('main-content').addEventListener('scroll', updateActiveFile);
+  document.getElementById('main-content').addEventListener('scroll', () => {
+    updateActiveFile();
+    updateCommentNavPosition();
+  });
 
   document.getElementById('sidebar-toggle').addEventListener('click', () => {
     const sidebar = document.getElementById('sidebar');
@@ -1140,14 +1143,40 @@ let _commentNavIdx = -1;
 function updateCommentNav() {
   const total = countAllComments();
   const nav = document.getElementById('comment-nav');
-  const countEl = document.getElementById('comment-nav-count');
   if (total === 0) {
     nav.classList.add('hidden');
     return;
   }
   nav.classList.remove('hidden');
-  countEl.textContent = total;
   _commentNavIdx = -1;
+  updateCommentNavDisplay();
+}
+
+function updateCommentNavDisplay() {
+  const countEl = document.getElementById('comment-nav-count');
+  const els = getAllCommentElements();
+  const current = _commentNavIdx >= 0 ? _commentNavIdx + 1 : getVisibleCommentIndex(els) + 1;
+  countEl.textContent = current + ' / ' + els.length;
+}
+
+function getVisibleCommentIndex(els) {
+  if (els.length === 0) return 0;
+  const main = document.getElementById('main-content');
+  const scrollTop = main.scrollTop;
+  const viewTop = scrollTop;
+  let best = 0;
+  for (let i = 0; i < els.length; i++) {
+    if (els[i].offsetTop - main.offsetTop <= viewTop + 80) best = i;
+    else break;
+  }
+  return best;
+}
+
+function updateCommentNavPosition() {
+  const els = getAllCommentElements();
+  if (els.length === 0) return;
+  _commentNavIdx = -1;
+  updateCommentNavDisplay();
 }
 
 function countAllComments() {
@@ -1166,6 +1195,7 @@ function getAllCommentElements() {
 function jumpToComment(direction) {
   const els = getAllCommentElements();
   if (els.length === 0) return;
+  if (_commentNavIdx < 0) _commentNavIdx = getVisibleCommentIndex(els);
   _commentNavIdx += direction;
   if (_commentNavIdx < 0) _commentNavIdx = els.length - 1;
   if (_commentNavIdx >= els.length) _commentNavIdx = 0;
@@ -1173,6 +1203,7 @@ function jumpToComment(direction) {
   els.forEach(el => el.classList.remove('comment-highlight'));
   els[_commentNavIdx].classList.add('comment-highlight');
   setTimeout(() => els[_commentNavIdx]?.classList.remove('comment-highlight'), 1500);
+  updateCommentNavDisplay();
 }
 
 document.getElementById('comment-nav-up').addEventListener('click', () => jumpToComment(-1));
