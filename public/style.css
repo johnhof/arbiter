@@ -53,7 +53,7 @@ html, body {
 }
 .header-left { display: flex; align-items: center; flex-shrink: 0; }
 .logo { font-weight: 700; font-size: 15px; color: var(--text); white-space: nowrap; }
-.header-center { display: flex; align-items: center; gap: 12px; flex: 1; overflow: hidden; min-width: 0; justify-content: center; }
+.header-center { display: flex; align-items: center; gap: 12px; flex: 1; min-width: 0; justify-content: center; flex-wrap: wrap; }
 .header-right { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
 .control-group { display: flex; align-items: center; gap: 6px; white-space: nowrap; min-width: 0; flex-shrink: 1; }
 .control-group label { font-size: 12px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
