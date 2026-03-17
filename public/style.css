@@ -72,23 +72,24 @@ select { min-width: 80px; cursor: pointer; text-overflow: ellipsis; overflow: hi
 
 .btn {
   padding: 4px 12px;
-  border: 1px solid var(--border);
+  border: none;
   border-radius: 6px;
   font-size: 13px;
   cursor: pointer;
-  background: var(--surface-raised);
+  background: var(--border);
   color: var(--text);
   font-family: var(--font-sans);
-  transition: background 0.15s, border-color 0.15s;
+  transition: background 0.15s;
 }
-.btn:hover { background: var(--border); }
-.btn-primary { background: #238636; border-color: #2ea043; color: #fff; }
+.btn:hover { background: var(--text-muted); }
+.btn-primary { background: #238636; color: #fff; }
 .btn-primary:hover { background: #2ea043; }
-.btn-secondary { background: var(--surface-raised); }
-.btn-accent { background: #1f6feb; border-color: #388bfd; color: #fff; }
+.btn-secondary { background: var(--border); }
+.btn-secondary:hover { background: var(--text-muted); }
+.btn-accent { background: #1f6feb; color: #fff; }
 .btn-accent:hover { background: #388bfd; }
 .btn-small { padding: 2px 8px; font-size: 12px; }
-.btn-danger { background: #da3633; border-color: #f85149; color: #fff; }
+.btn-danger { background: #da3633; color: #fff; }
 .btn-danger:hover { background: #f85149; }
 
 /* Split button */
@@ -99,7 +100,7 @@ select { min-width: 80px; cursor: pointer; text-overflow: ellipsis; overflow: hi
   padding: 4px 6px;
   font-size: 10px;
 }
-.split-btn-action { border-radius: 0 6px 6px 0; background: #1a5fcb; border-color: #388bfd; min-width: 100px; text-align: center; }
+.split-btn-action { border-radius: 0 6px 6px 0; background: #1a5fcb; min-width: 100px; text-align: center; }
 .split-btn-dropdown {
   position: absolute;
   top: 100%;
