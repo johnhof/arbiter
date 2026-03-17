@@ -7,6 +7,7 @@
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/protobuf.min.js"></script>
 </head>
 <body>
   <header id="header">
@@ -52,6 +53,12 @@
       </div>
     </div>
   </main>
+
+  <div id="comment-nav" class="comment-nav hidden">
+    <button id="comment-nav-up" class="comment-nav-btn" title="Previous comment">&#x25B2;</button>
+    <span id="comment-nav-count" class="comment-nav-count">0</span>
+    <button id="comment-nav-down" class="comment-nav-btn" title="Next comment">&#x25BC;</button>
+  </div>
 
   <div id="comment-popover" class="comment-popover hidden">
     <button id="btn-add-comment" class="btn btn-primary btn-small">+ Comment</button>

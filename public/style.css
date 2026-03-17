@@ -386,6 +386,7 @@ select { min-width: 80px; cursor: pointer; text-overflow: ellipsis; overflow: hi
   flex-shrink: 0;
 }
 .comment-collapse-toggle.collapsed { transform: rotate(-90deg); }
+.comment-block.comment-highlight { border-left-color: var(--green); box-shadow: 0 0 8px rgba(63,185,80,0.3); transition: box-shadow 0.3s, border-left-color 0.3s; }
 
 /* File-level & diff-level comments */
 .file-comments, .diff-comments {
@@ -393,6 +394,40 @@ select { min-width: 80px; cursor: pointer; text-overflow: ellipsis; overflow: hi
   border-bottom: 1px solid var(--border);
 }
 .diff-comment-area { margin-bottom: 16px; }
+
+/* Comment navigation widget */
+.comment-nav {
+  position: fixed;
+  top: calc(var(--header-height) + 12px);
+  right: 28px;
+  z-index: 90;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 4px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+  gap: 2px;
+}
+.comment-nav.hidden { display: none; }
+.comment-nav-btn {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 10px;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+.comment-nav-btn:hover { background: var(--border); color: var(--text); }
+.comment-nav-count {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--accent);
+  padding: 2px 4px;
+}
 
 /* Comment popover */
 .comment-popover {

@@ -33,6 +33,7 @@ function loadComments() {
 
 function saveComments() {
   localStorage.setItem(storageKey(), JSON.stringify(state.comments));
+  if (typeof updateCommentNav === 'function') updateCommentNav();
 }
 
 function getFileComments(filePath) {
@@ -206,6 +207,7 @@ async function loadDiff() {
   renderFileTree();
   renderDiff();
   renderDiffComments();
+  updateCommentNav();
 }
 
 // === File Tree ===
@@ -1131,6 +1133,50 @@ function showToast(message) {
   requestAnimationFrame(() => { toast.style.opacity = '1'; });
   setTimeout(() => { toast.style.opacity = '0'; setTimeout(() => toast.remove(), 300); }, 2000);
 }
+
+// === Comment Navigation ===
+let _commentNavIdx = -1;
+
+function updateCommentNav() {
+  const total = countAllComments();
+  const nav = document.getElementById('comment-nav');
+  const countEl = document.getElementById('comment-nav-count');
+  if (total === 0) {
+    nav.classList.add('hidden');
+    return;
+  }
+  nav.classList.remove('hidden');
+  countEl.textContent = total;
+  _commentNavIdx = -1;
+}
+
+function countAllComments() {
+  let n = state.comments.diff ? state.comments.diff.length : 0;
+  for (const fp of Object.keys(state.comments.files)) {
+    const fc = state.comments.files[fp];
+    n += (fc.file ? fc.file.length : 0) + (fc.inline ? fc.inline.length : 0);
+  }
+  return n;
+}
+
+function getAllCommentElements() {
+  return Array.from(document.querySelectorAll('.comment-block'));
+}
+
+function jumpToComment(direction) {
+  const els = getAllCommentElements();
+  if (els.length === 0) return;
+  _commentNavIdx += direction;
+  if (_commentNavIdx < 0) _commentNavIdx = els.length - 1;
+  if (_commentNavIdx >= els.length) _commentNavIdx = 0;
+  els[_commentNavIdx].scrollIntoView({ behavior: 'smooth', block: 'center' });
+  els.forEach(el => el.classList.remove('comment-highlight'));
+  els[_commentNavIdx].classList.add('comment-highlight');
+  setTimeout(() => els[_commentNavIdx]?.classList.remove('comment-highlight'), 1500);
+}
+
+document.getElementById('comment-nav-up').addEventListener('click', () => jumpToComment(-1));
+document.getElementById('comment-nav-down').addEventListener('click', () => jumpToComment(1));
 
 // Dismiss popover on outside click
 document.addEventListener('click', (e) => {
