@@ -98,7 +98,7 @@ select { min-width: 80px; cursor: pointer; text-overflow: ellipsis; overflow: hi
   left: 0;
   bottom: 0;
   width: var(--sidebar-width);
-  background: var(--bg);
+  background: #161b22;
   overflow-y: auto;
   z-index: 50;
   transition: width 0.15s;
