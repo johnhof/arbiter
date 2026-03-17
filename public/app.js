@@ -97,6 +97,22 @@ function createEl(tag, attrs, children) {
   return el;
 }
 
+// === Auto-size inputs to content ===
+const _sizer = document.createElement('span');
+_sizer.style.cssText = 'position:absolute;visibility:hidden;white-space:pre;pointer-events:none';
+document.body.appendChild(_sizer);
+
+function autoSizeInput(el) {
+  const style = getComputedStyle(el);
+  _sizer.style.font = style.font;
+  _sizer.style.letterSpacing = style.letterSpacing;
+  _sizer.style.padding = '0';
+  const text = el.value || el.options?.[el.selectedIndex]?.text || el.placeholder || '';
+  _sizer.textContent = text;
+  const pad = parseFloat(style.paddingLeft) + parseFloat(style.paddingRight) + parseFloat(style.borderLeftWidth) + parseFloat(style.borderRightWidth) + 16;
+  el.style.width = (_sizer.offsetWidth + pad) + 'px';
+}
+
 // === Init ===
 document.addEventListener('DOMContentLoaded', async () => {
   const pathInput = document.getElementById('base-path');
@@ -106,13 +122,15 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   try {
     const init = await api('/api/initial-path');
-    if (init.path) { pathInput.value = init.path; loadRepo(); }
+    if (init.path) { pathInput.value = init.path; autoSizeInput(pathInput); loadRepo(); }
   } catch {}
+
+  pathInput.addEventListener('input', () => autoSizeInput(pathInput));
+  targetSelect.addEventListener('change', () => { autoSizeInput(targetSelect); state.targetBranch = targetSelect.value; loadDiff(); });
+  sourceSelect.addEventListener('change', () => { autoSizeInput(sourceSelect); state.sourceBranch = sourceSelect.value; loadDiff(); });
 
   btnLoad.addEventListener('click', loadRepo);
   pathInput.addEventListener('keydown', e => { if (e.key === 'Enter') loadRepo(); });
-  targetSelect.addEventListener('change', () => { state.targetBranch = targetSelect.value; loadDiff(); });
-  sourceSelect.addEventListener('change', () => { state.sourceBranch = sourceSelect.value; loadDiff(); });
 
   document.getElementById('btn-diff-comment').addEventListener('click', showDiffCommentForm);
   document.getElementById('btn-copy-comments').addEventListener('click', () => exportComments('clipboard'));
@@ -155,6 +173,10 @@ async function loadRepo() {
 
   state.targetBranch = targetSelect.value;
   state.sourceBranch = sourceSelect.value;
+
+  autoSizeInput(pathInput);
+  autoSizeInput(targetSelect);
+  autoSizeInput(sourceSelect);
 
   await loadDiff();
 }

@@ -67,8 +67,8 @@ input[type="text"], select {
   outline: none;
 }
 input[type="text"]:focus, select:focus { border-color: var(--accent); }
-#base-path { width: 200px; min-width: 80px; flex-shrink: 1; text-overflow: ellipsis; overflow: hidden; }
-select { min-width: 80px; max-width: 160px; cursor: pointer; text-overflow: ellipsis; overflow: hidden; flex-shrink: 1; }
+#base-path { min-width: 80px; flex-shrink: 1; text-overflow: ellipsis; overflow: hidden; }
+select { min-width: 80px; cursor: pointer; text-overflow: ellipsis; overflow: hidden; flex-shrink: 1; }
 
 .btn {
   padding: 4px 12px;
