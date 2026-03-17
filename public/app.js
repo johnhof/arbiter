@@ -362,9 +362,40 @@ function buildFileBox(file, idx) {
   } else if (file.binary) {
     body.appendChild(createEl('div', { className: 'binary-notice', textContent: 'Binary file changed' }));
   } else {
+    const outer = createEl('div', { className: 'diff-table-outer' });
     const wrapper = createEl('div', { className: 'diff-table-wrapper' });
-    wrapper.appendChild(buildDiffTable(file, idx, lang));
-    body.appendChild(wrapper);
+    const table = buildDiffTable(file, idx, lang);
+    wrapper.appendChild(table);
+    outer.appendChild(wrapper);
+
+    // Sticky scrollbar at bottom
+    const scrollbar = createEl('div', { className: 'diff-sticky-scrollbar' });
+    const scrollInner = createEl('div', { className: 'diff-sticky-scrollbar-inner' });
+    scrollbar.appendChild(scrollInner);
+    outer.appendChild(scrollbar);
+
+    // Sync widths and scroll positions
+    const syncWidth = () => {
+      scrollInner.style.width = wrapper.scrollWidth + 'px';
+    };
+    let syncing = false;
+    scrollbar.addEventListener('scroll', () => {
+      if (syncing) return;
+      syncing = true;
+      wrapper.scrollLeft = scrollbar.scrollLeft;
+      syncing = false;
+    });
+    wrapper.addEventListener('scroll', () => {
+      if (syncing) return;
+      syncing = true;
+      scrollbar.scrollLeft = wrapper.scrollLeft;
+      syncing = false;
+    });
+    // Set initial width after render
+    requestAnimationFrame(syncWidth);
+    new ResizeObserver(syncWidth).observe(wrapper);
+
+    body.appendChild(outer);
   }
 
   box.appendChild(body);
