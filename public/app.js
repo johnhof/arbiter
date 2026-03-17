@@ -170,8 +170,31 @@ document.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('sidebar-toggle').addEventListener('click', () => {
     const sidebar = document.getElementById('sidebar');
     sidebar.classList.toggle('collapsed');
-    const mainContent = document.getElementById('main-content');
-    mainContent.style.left = sidebar.classList.contains('collapsed') ? '40px' : '';
+    const mc = document.getElementById('main-content');
+    mc.style.left = sidebar.classList.contains('collapsed') ? '40px' : '';
+  });
+
+  // Sidebar drag resize
+  const resizeHandle = document.getElementById('sidebar-resize');
+  const sidebar = document.getElementById('sidebar');
+  resizeHandle.addEventListener('mousedown', (e) => {
+    e.preventDefault();
+    sidebar.style.transition = 'none';
+    resizeHandle.classList.add('dragging');
+    const onMove = (e) => {
+      const width = Math.max(100, Math.min(600, e.clientX));
+      sidebar.style.width = width + 'px';
+      mainContent.style.left = width + 'px';
+      document.documentElement.style.setProperty('--sidebar-width', width + 'px');
+    };
+    const onUp = () => {
+      sidebar.style.transition = '';
+      resizeHandle.classList.remove('dragging');
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+    };
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
   });
 });
 
