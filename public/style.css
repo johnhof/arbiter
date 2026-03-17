@@ -205,7 +205,7 @@ select { min-width: 80px; cursor: pointer; text-overflow: ellipsis; overflow: hi
 /* === Diff File Boxes === */
 .diff-file {
   background: var(--surface);
-  border-radius: 8px;
+  border-radius: 0 0 8px 8px;
   margin-bottom: 16px;
 }
 
