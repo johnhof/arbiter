@@ -409,7 +409,7 @@ select { min-width: 80px; cursor: pointer; text-overflow: ellipsis; overflow: hi
 /* Comment navigation widget */
 .comment-nav {
   position: fixed;
-  top: calc(var(--header-height) + 12px);
+  top: calc(var(--header-height) + 48px);
   right: 28px;
   z-index: 90;
   display: flex;
