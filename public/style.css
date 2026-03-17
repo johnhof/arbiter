@@ -205,9 +205,13 @@ select { min-width: 80px; cursor: pointer; text-overflow: ellipsis; overflow: hi
 /* === Diff File Boxes === */
 .diff-file {
   background: var(--surface);
-  border-radius: 0 0 8px 8px;
+  border-radius: 8px;
   margin-bottom: 16px;
 }
+
+.sticky-sentinel { height: 0; margin: 0; padding: 0; visibility: hidden; }
+.diff-file.pinned { border-radius: 0 0 8px 8px; }
+.diff-file.pinned .file-header { border-radius: 0; }
 
 .file-header {
   display: flex; align-items: center; gap: 8px;

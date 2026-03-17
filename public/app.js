@@ -350,6 +350,14 @@ function buildFileBox(file, idx) {
   header.appendChild(commentBtn);
   box.appendChild(header);
 
+  // Detect when header becomes sticky (pinned)
+  const sentinel = createEl('div', { className: 'sticky-sentinel' });
+  box.insertBefore(sentinel, header);
+  const observer = new IntersectionObserver(([e]) => {
+    box.classList.toggle('pinned', e.intersectionRatio === 0);
+  }, { root: document.getElementById('main-content'), threshold: 0 });
+  observer.observe(sentinel);
+
   // Collapsible body
   const body = createEl('div', { className: 'diff-file-body' });
 
