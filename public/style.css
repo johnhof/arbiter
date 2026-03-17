@@ -194,8 +194,6 @@ select { min-width: 80px; cursor: pointer; text-overflow: ellipsis; overflow: hi
   transition: padding-top 0.15s;
 }
 #main-content.scrolled { padding-top: 0; }
-#main-content.scrolled .diff-file { border-radius: 0 0 8px 8px; }
-#main-content.scrolled .file-header { border-top: 1px solid var(--bg); }
 
 .empty-state {
   display: flex; align-items: center; justify-content: center;
