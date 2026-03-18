@@ -428,7 +428,11 @@ select { min-width: 80px; cursor: pointer; text-overflow: ellipsis; overflow: hi
   outline: none;
 }
 .comment-form textarea:focus { border-color: var(--accent); }
-.comment-form-actions { display: flex; gap: 6px; margin-top: 6px; justify-content: flex-end; }
+.comment-form-actions {
+  display: flex; gap: 6px; margin-top: 6px; justify-content: flex-end;
+  position: sticky; bottom: 0; background: var(--comment-bg); padding: 6px 0;
+  z-index: 5;
+}
 
 .comment-block {
   background: var(--comment-bg);
