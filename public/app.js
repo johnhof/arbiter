@@ -658,7 +658,7 @@ function handleLineMouseDown(e) {
   if (e.shiftKey && state.selectionFileIdx === fileIdx && state.selectionStart !== null) {
     state.selectionEnd = info;
     highlightSelection();
-    showCommentPopover(e);
+    insertInlineCommentForm();
     return;
   }
 
@@ -668,8 +668,6 @@ function handleLineMouseDown(e) {
   state.selectionEnd = info;
   highlightSelection();
 
-  let dragged = false;
-
   const onMove = (e) => {
     const el = document.elementFromPoint(e.clientX, e.clientY);
     if (!el) return;
@@ -677,15 +675,14 @@ function handleLineMouseDown(e) {
     if (!lineNumTd) return;
     const moveRow = lineNumTd.closest('tr');
     if (!moveRow || parseInt(moveRow.dataset.fileIdx) !== fileIdx) return;
-    dragged = true;
     state.selectionEnd = getRowInfo(moveRow);
     highlightSelection();
   };
 
-  const onUp = (e) => {
+  const onUp = () => {
     document.removeEventListener('mousemove', onMove);
     document.removeEventListener('mouseup', onUp);
-    showCommentPopover(e);
+    insertInlineCommentForm();
   };
 
   document.addEventListener('mousemove', onMove);
@@ -695,7 +692,7 @@ function handleLineMouseDown(e) {
 function clearSelection() {
   document.querySelectorAll('.line-num.selected').forEach(el => el.classList.remove('selected'));
   document.querySelectorAll('.diff-line.selected-line').forEach(el => el.classList.remove('selected-line'));
-  document.getElementById('comment-popover').classList.add('hidden');
+  document.querySelectorAll('.comment-form-row.temp').forEach(el => el.remove());
   state.selectionStart = null;
   state.selectionEnd = null;
   state.selectionFileIdx = null;
@@ -720,20 +717,6 @@ function highlightSelection() {
     rows[i].classList.add('selected-line');
     rows[i].querySelectorAll('.line-num').forEach(td => td.classList.add('selected'));
   }
-}
-
-function showCommentPopover(e) {
-  const popover = document.getElementById('comment-popover');
-  const btn = document.getElementById('btn-add-comment');
-
-  popover.classList.remove('hidden');
-  popover.style.top = (e.clientY - 10) + 'px';
-  popover.style.left = (e.clientX + 20) + 'px';
-
-  btn.onclick = () => {
-    popover.classList.add('hidden');
-    insertInlineCommentForm();
-  };
 }
 
 function insertInlineCommentForm() {
@@ -1358,12 +1341,3 @@ function jumpToComment(direction) {
 document.getElementById('comment-nav-up').addEventListener('click', () => jumpToComment(-1));
 document.getElementById('comment-nav-down').addEventListener('click', () => jumpToComment(1));
 
-// Dismiss popover on outside click
-document.addEventListener('click', (e) => {
-  if (!e.target.closest('.line-num') && !e.target.closest('.comment-popover') && !e.target.closest('.comment-form')) {
-    const popover = document.getElementById('comment-popover');
-    if (popover && !popover.classList.contains('hidden')) {
-      popover.classList.add('hidden');
-    }
-  }
-});

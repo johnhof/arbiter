@@ -490,17 +490,6 @@ select { min-width: 80px; cursor: pointer; text-overflow: ellipsis; overflow: hi
   padding: 2px 4px;
 }
 
-/* Comment popover */
-.comment-popover {
-  position: fixed;
-  z-index: 200;
-  background: var(--surface-raised);
-  border-radius: 6px;
-  padding: 4px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.4);
-}
-.comment-popover.hidden { display: none; }
-
 /* === Syntax highlighting overrides === */
 .diff-table code { background: transparent !important; padding: 0 !important; }
 .diff-table .hljs { background: transparent !important; padding: 0 !important; }
