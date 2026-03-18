@@ -42,7 +42,7 @@ html, body {
 /* === Header === */
 #header {
   position: fixed; top: 0; left: 0; right: 0;
-  min-height: var(--header-height);
+  min-height: 52px;
   background: #1c2128;
   display: flex; align-items: center;
   padding: 4px 16px; gap: 8px 16px;
@@ -412,6 +412,11 @@ select { min-width: 80px; cursor: pointer; text-overflow: ellipsis; overflow: hi
 .expand-btn:hover { text-decoration: underline; }
 
 /* === Comments === */
+.comment-form-row {
+  position: sticky;
+  bottom: 0;
+  z-index: 6;
+}
 .comment-form-row td {
   padding: 8px 16px;
   background: var(--surface-raised);
@@ -444,6 +449,12 @@ select { min-width: 80px; cursor: pointer; text-overflow: ellipsis; overflow: hi
   outline: none;
 }
 .comment-form textarea:focus { border-color: var(--accent); }
+.comment-hint {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 4px;
+  opacity: 0.6;
+}
 .comment-form-actions {
   display: flex; gap: 6px; margin-top: 6px; justify-content: flex-end;
   position: sticky; bottom: 0; background: var(--comment-bg); padding: 6px 0;

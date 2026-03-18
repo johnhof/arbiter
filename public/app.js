@@ -201,9 +201,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   const exportLabel = document.getElementById('export-mode-label');
   const exportDropdown = document.getElementById('export-dropdown');
 
-  if (state._initExportMode && ['clipboard', 'file', 'send'].includes(state._initExportMode)) {
+  if (state._initExportMode && ['clipboard', 'file', 'accept'].includes(state._initExportMode)) {
     exportMode = state._initExportMode;
-    exportLabel.textContent = exportMode === 'clipboard' ? 'Copy' : exportMode === 'file' ? 'Save' : 'Send';
+    exportLabel.textContent = exportMode === 'clipboard' ? 'Copy' : exportMode === 'file' ? 'Save' : 'Accept';
   }
   delete state._initExportMode;
 
@@ -215,7 +215,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   document.querySelectorAll('.split-btn-option').forEach(btn => {
     btn.addEventListener('click', () => {
       exportMode = btn.dataset.mode;
-      exportLabel.textContent = exportMode === 'clipboard' ? 'Copy' : exportMode === 'file' ? 'Save' : 'Send';
+      exportLabel.textContent = exportMode === 'clipboard' ? 'Copy' : exportMode === 'file' ? 'Save' : 'Accept';
       exportDropdown.classList.add('hidden');
     });
   });
@@ -823,12 +823,24 @@ function insertInlineCommentForm() {
   actionsDiv.appendChild(cancelBtn);
   actionsDiv.appendChild(saveBtn);
   formDiv.appendChild(textarea);
+  addCommentFormShortcuts(textarea, saveBtn);
   formDiv.appendChild(actionsDiv);
   td.appendChild(formDiv);
   formRow.appendChild(td);
 
   lastRow.after(formRow);
   textarea.focus();
+}
+
+function addCommentFormShortcuts(textarea, saveBtn) {
+  textarea.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && e.shiftKey) {
+      e.preventDefault();
+      saveBtn.click();
+    }
+  });
+  const hint = createEl('div', { className: 'comment-hint', textContent: 'Shift+Enter to submit' });
+  textarea.parentElement.insertBefore(hint, textarea.nextSibling);
 }
 
 // === File-Level Comments ===
@@ -858,6 +870,7 @@ function showFileCommentForm(fileIdx, filePath) {
   actionsDiv.appendChild(cancelBtn);
   actionsDiv.appendChild(saveBtn);
   formDiv.appendChild(textarea);
+  addCommentFormShortcuts(textarea, saveBtn);
   formDiv.appendChild(actionsDiv);
   area.appendChild(formDiv);
   textarea.focus();
@@ -929,6 +942,7 @@ function showDiffCommentForm() {
   actionsDiv.appendChild(cancelBtn);
   actionsDiv.appendChild(saveBtn);
   formDiv.appendChild(textarea);
+  addCommentFormShortcuts(textarea, saveBtn);
   formDiv.appendChild(actionsDiv);
   area.appendChild(formDiv);
   textarea.focus();
@@ -1275,15 +1289,15 @@ function exportComments(mode) {
       document.body.removeChild(textarea);
       showToast('Comments copied to clipboard');
     });
-  } else if (mode === 'send') {
-    fetch('/api/submit', {
+  } else if (mode === 'accept') {
+    fetch('/api/prompts', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ markdown: output }),
+      body: JSON.stringify({ path: state.basePath, source: state.sourceBranch, target: state.targetBranch, markdown: output }),
     }).then(r => {
-      if (r.ok) showToast('Comments sent — server exiting');
-      else showToast('Failed to send comments');
-    }).catch(() => showToast('Failed to send comments'));
+      if (r.ok) showToast('Prompt accepted — waiting for agent');
+      else showToast('Failed to accept prompt');
+    }).catch(() => showToast('Failed to accept prompt'));
   } else {
     const blob = new Blob([output], { type: 'text/markdown' });
     const url = URL.createObjectURL(blob);

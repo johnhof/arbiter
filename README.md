@@ -25,16 +25,18 @@ Opens at `http://localhost:7429` (auto-increments if taken). Defaults to the git
 |------|-------------|---------|
 | `--path /path/to/repo` | Repository to diff | git root of CWD |
 | `--port <number>` | Server port (auto-increments if taken) | `7429` |
-| `--export <mode>` | Default export button: `clipboard`, `file`, or `send` | `clipboard` |
+| `--export <mode>` | Default export button: `clipboard`, `file`, or `accept` | `clipboard` |
 
 ### Agent Integration
 
-Use `--export send` to make "Send Prompt" the default action. When the user clicks it, Arbiter prints the review prompt to stdout and exits — making it a blocking interactive step in an agent pipeline:
+Use `--export accept` to make "Accept Prompt" the default action. When the user clicks it, the prompt is stored on the server in memory, keyed by repo path + source + target branch. An agent can poll for it:
 
 ```bash
-# Agent spawns this and blocks until the human finishes reviewing
-output=$(arbiter --path /path/to/repo --export send)
-# $output contains the structured review prompt
+# Poll for an accepted prompt
+curl -s "http://localhost:7429/api/prompts?path=/path/to/repo&source=feature&target=main"
+# Mark as read after consuming
+curl -s -X PATCH "http://localhost:7429/api/prompts?path=/path/to/repo&source=feature&target=main" \
+  -H "Content-Type: application/json" -d '{"read": true}'
 ```
 
 ## Features
@@ -45,7 +47,7 @@ output=$(arbiter --path /path/to/repo --export send)
 - **Collapsible UI** — file diff boxes, sidebar, and individual comments all collapse independently
 - **Comment navigation** — fixed widget shows current/total comment count with prev/next jumping, tracks scroll position
 - **Comment persistence** — saved to localStorage, keyed by repo + branch pair
-- **Agent prompt export** — copy to clipboard, download as markdown, or send directly to a calling agent
+- **Agent prompt export** — copy to clipboard, download as markdown, or accept for agent polling
 - **Generated file detection** — respects `.gitattributes` patterns to collapse generated/binary files
 - **Sticky headers** — file headers pin to the top while scrolling; horizontal scrollbar sticks to the bottom
 - **Responsive layout** — header wraps and stacks at narrow viewports, sidebar hides below 900px
@@ -53,11 +55,11 @@ output=$(arbiter --path /path/to/repo --export send)
 
 ## Claude Code Skill
 
-Arbiter ships with a Claude Code skill at `.claude/skills/review/` that automates the review loop: Claude generates an Arbiter link, the user reviews and leaves comments, then pastes the exported prompt back for Claude to apply.
+Arbiter ships with a Claude Code skill at `.claude/skills/review/` that automates the review loop: Claude generates an Arbiter link, the user reviews and leaves comments, then clicks Accept. Claude polls for the prompt and applies the changes.
 
 ### Install the skill
 
-Add the skill directory to your Claude Code settings (`~/.claude/settings.json` for global, or `.claude/settings.json` for per-project):
+**Option 1: Register the skill directory** in your Claude Code settings (`~/.claude/settings.json` for global, or `.claude/settings.json` for per-project):
 
 ```json
 {
@@ -65,10 +67,16 @@ Add the skill directory to your Claude Code settings (`~/.claude/settings.json` 
 }
 ```
 
-Or symlink into a project's existing skills directory:
+**Option 2: Symlink** into a project's existing skills directory:
 
 ```bash
 ln -s <path-to-arbiter>/.claude/skills/review .claude/skills/arbiter-review
+```
+
+**Option 3: Copy** the skill into your project:
+
+```bash
+cp -r <path-to-arbiter>/.claude/skills/review .claude/skills/arbiter-review
 ```
 
 Find your install path with `npm ls -g arbiter` or `which arbiter`.
@@ -87,7 +95,7 @@ review my changes before I merge
 let me review the diff on feature-branch
 ```
 
-Claude generates an Arbiter link pre-loaded with the right repo and branches. Review the diff in your browser, leave comments, then export with **Copy Prompt** and paste back into Claude.
+Claude generates an Arbiter link pre-loaded with the right repo and branches, then polls for your review. Open the link, leave comments, click **Accept Prompt**, and Claude picks them up automatically.
 
 ## Architecture
 
