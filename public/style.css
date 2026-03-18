@@ -380,10 +380,10 @@ select { min-width: 80px; cursor: pointer; text-overflow: ellipsis; overflow: hi
 
 .diff-line.addition .line-content { background: var(--diff-add-bg); }
 .diff-line.addition .line-num.old { background: var(--diff-add-bg); }
-.diff-line.addition .line-num.new { background: rgba(63,185,80,0.25); }
+.diff-line.addition .line-num.new { background: #162419; }
 .diff-line.deletion .line-content { background: var(--diff-del-bg); }
 .diff-line.deletion .line-num.old { background: var(--diff-del-bg); }
-.diff-line.deletion .line-num.new { background: rgba(248,81,73,0.25); }
+.diff-line.deletion .line-num.new { background: #310e12; }
 .diff-line.selected-line .line-content { background: rgba(88,166,255,0.1) !important; }
 
 /* Hunk separator */
