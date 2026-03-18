@@ -139,12 +139,15 @@ document.addEventListener('DOMContentLoaded', async () => {
   try {
     const saved = JSON.parse(localStorage.getItem('arbiter:session') || '{}');
     const init = await api('/api/initial-path');
-    const initialPath = saved.path || init.path;
+    const initialPath = init.path || saved.path;
     if (initialPath) {
       pathInput.value = initialPath;
       autoSizeInput(pathInput);
-      state._savedTarget = saved.target || '';
-      state._savedSource = saved.source || '';
+      // Only use saved branches if no CLI path was provided (i.e., using saved session)
+      if (!init.path && saved.path) {
+        state._savedTarget = saved.target || '';
+        state._savedSource = saved.source || '';
+      }
       loadRepo();
     }
   } catch {}
