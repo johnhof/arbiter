@@ -369,7 +369,7 @@ select { min-width: 80px; cursor: pointer; text-overflow: ellipsis; overflow: hi
 .line-num.selected { opacity: 1; color: var(--accent); background: rgba(88,166,255,0.15); }
 
 .line-content {
-  padding: 0 12px;
+  padding: 0 12px 0 16px;
   white-space: pre;
   overflow: visible;
 }
