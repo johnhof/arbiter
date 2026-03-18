@@ -3,21 +3,21 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Diff Reviewer</title>
+  <title>Arbiter</title>
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/protobuf.min.js"></script>
 </head>
 <body>
   <header id="header">
     <div class="header-left">
-      <span class="logo">Diff Reviewer</span>
+      <span class="logo">Arbiter</span>
     </div>
-    <div class="header-controls">
+    <div class="header-center">
       <div class="control-group">
         <label for="base-path">Path</label>
         <input type="text" id="base-path" placeholder="/path/to/repo" spellcheck="false">
-        <button id="btn-load" class="btn btn-primary">Load</button>
       </div>
       <div class="control-group">
         <label for="target-branch">Target</label>
@@ -27,17 +27,28 @@
         <label for="source-branch">Source</label>
         <select id="source-branch"><option>—</option></select>
       </div>
-      <div class="control-group">
-        <button id="btn-diff-comment" class="btn btn-secondary" title="Add overall comment">Comment</button>
-        <button id="btn-copy-comments" class="btn btn-accent" title="Copy comments to clipboard">Copy</button>
-        <button id="btn-save-comments" class="btn btn-accent" title="Save comments to file">Save</button>
+    </div>
+    <div class="header-right">
+      <button id="btn-diff-comment" class="btn btn-secondary" title="Add overall comment">Comment</button>
+      <div class="split-btn">
+        <button id="btn-export-toggle" class="split-btn-arrow btn btn-accent">&#x25BC;</button>
+        <button id="btn-export" class="split-btn-action btn btn-accent"><span id="export-mode-label">Copy</span> Prompt</button>
+        <div id="export-dropdown" class="split-btn-dropdown hidden">
+          <button class="split-btn-option" data-mode="clipboard">Copy</button>
+          <button class="split-btn-option" data-mode="file">Save</button>
+        </div>
       </div>
     </div>
   </header>
 
   <aside id="sidebar">
-    <div class="sidebar-header">Files <span id="file-count" class="badge">0</span></div>
+    <div class="sidebar-header">
+      <span class="sidebar-toggle" id="sidebar-toggle">&#x25C0;</span>
+      <span>Files</span>
+      <span id="file-count" class="badge">0</span>
+    </div>
     <div id="file-tree"></div>
+    <div id="sidebar-resize" class="sidebar-resize"></div>
   </aside>
 
   <main id="main-content">
@@ -49,10 +60,12 @@
     </div>
   </main>
 
-  <div id="comment-popover" class="comment-popover hidden">
-    <button id="btn-add-comment" class="btn btn-primary btn-small">+ Comment</button>
+  <div id="comment-nav" class="comment-nav hidden">
+    <button id="comment-nav-up" class="comment-nav-btn" title="Previous comment">&#x25B2;</button>
+    <span id="comment-nav-count" class="comment-nav-count">0</span>
+    <button id="comment-nav-down" class="comment-nav-btn" title="Next comment">&#x25BC;</button>
   </div>
 
-  <script src="app.js"></script>
+<script src="app.js"></script>
 </body>
 </html>

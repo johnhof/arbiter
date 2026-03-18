@@ -1,7 +1,7 @@
 {
-  "name": "diff-reviewer",
+  "name": "arbiter",
   "version": "1.0.0",
-  "description": "Browser-based git diff review UI with inline commenting",
+  "description": "Browser-based git diff review UI with inline commenting and agent prompt export",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"

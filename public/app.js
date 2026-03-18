@@ -1,5 +1,5 @@
 /* =========================================================
-   Diff Reviewer — Frontend
+   Arbiter — Frontend
    All git-sourced content is escaped via escapeHtml() before
    innerHTML insertion to prevent XSS.
    ========================================================= */
@@ -20,19 +20,51 @@ const state = {
 
 // === Helpers ===
 function storageKey() {
-  return `diffreviewer:${state.basePath}:${state.sourceBranch}:${state.targetBranch}`;
+  return `arbiter:${state.basePath}:${state.sourceBranch}:${state.targetBranch}`;
 }
 
 function loadComments() {
   try {
     const raw = localStorage.getItem(storageKey());
-    if (raw) state.comments = JSON.parse(raw);
-    else state.comments = { diff: [], files: {} };
+    if (raw) {
+      const data = JSON.parse(raw);
+      if (data.comments) {
+        state.comments = data.comments;
+        if (data.sidebarWidth) applySidebarWidth(data.sidebarWidth);
+      } else {
+        // Legacy format: raw comments object
+        state.comments = data;
+      }
+    } else {
+      state.comments = { diff: [], files: {} };
+    }
   } catch { state.comments = { diff: [], files: {} }; }
 }
 
 function saveComments() {
-  localStorage.setItem(storageKey(), JSON.stringify(state.comments));
+  const sidebar = document.getElementById('sidebar');
+  const sidebarWidth = sidebar ? parseInt(getComputedStyle(sidebar).width) : null;
+  localStorage.setItem(storageKey(), JSON.stringify({
+    comments: state.comments,
+    sidebarWidth,
+  }));
+}
+
+function applySidebarWidth(width) {
+  const sidebar = document.getElementById('sidebar');
+  const main = document.getElementById('main-content');
+  if (!sidebar || !main || sidebar.classList.contains('collapsed')) return;
+  sidebar.style.width = width + 'px';
+  main.style.left = width + 'px';
+  document.documentElement.style.setProperty('--sidebar-width', width + 'px');
+}
+
+function saveSession() {
+  localStorage.setItem('arbiter:session', JSON.stringify({
+    path: state.basePath,
+    target: state.targetBranch,
+    source: state.sourceBranch,
+  }));
 }
 
 function getFileComments(filePath) {
@@ -97,28 +129,124 @@ function createEl(tag, attrs, children) {
   return el;
 }
 
+// === Auto-size inputs to content ===
+const _sizer = document.createElement('span');
+_sizer.style.cssText = 'position:absolute;visibility:hidden;white-space:pre;pointer-events:none';
+document.body.appendChild(_sizer);
+
+function autoSizeInput(el) {
+  const style = getComputedStyle(el);
+  _sizer.style.font = style.font;
+  _sizer.style.letterSpacing = style.letterSpacing;
+  _sizer.style.padding = '0';
+  const text = el.value || el.options?.[el.selectedIndex]?.text || el.placeholder || '';
+  _sizer.textContent = text;
+  const pad = parseFloat(style.paddingLeft) + parseFloat(style.paddingRight) + parseFloat(style.borderLeftWidth) + parseFloat(style.borderRightWidth) + 16;
+  el.style.width = (_sizer.offsetWidth + pad) + 'px';
+}
+
+// === Sync layout to dynamic header height ===
+function syncHeaderHeight() {
+  const h = document.getElementById('header').offsetHeight;
+  document.documentElement.style.setProperty('--header-height', h + 'px');
+}
+new ResizeObserver(syncHeaderHeight).observe(document.getElementById('header'));
+
 // === Init ===
 document.addEventListener('DOMContentLoaded', async () => {
   const pathInput = document.getElementById('base-path');
-  const btnLoad = document.getElementById('btn-load');
   const targetSelect = document.getElementById('target-branch');
   const sourceSelect = document.getElementById('source-branch');
 
   try {
+    const saved = JSON.parse(localStorage.getItem('arbiter:session') || '{}');
     const init = await api('/api/initial-path');
-    if (init.path) { pathInput.value = init.path; loadRepo(); }
+    const initialPath = init.path || saved.path;
+    if (initialPath) {
+      pathInput.value = initialPath;
+      autoSizeInput(pathInput);
+      // Only use saved branches if no CLI path was provided (i.e., using saved session)
+      if (!init.path && saved.path) {
+        state._savedTarget = saved.target || '';
+        state._savedSource = saved.source || '';
+      }
+      loadRepo();
+    }
   } catch {}
 
-  btnLoad.addEventListener('click', loadRepo);
-  pathInput.addEventListener('keydown', e => { if (e.key === 'Enter') loadRepo(); });
-  targetSelect.addEventListener('change', () => { state.targetBranch = targetSelect.value; loadDiff(); });
-  sourceSelect.addEventListener('change', () => { state.sourceBranch = sourceSelect.value; loadDiff(); });
+  pathInput.addEventListener('input', () => autoSizeInput(pathInput));
+  function onTargetChange() { autoSizeInput(targetSelect); state.targetBranch = targetSelect.value; saveSession(); loadDiff(); }
+  function onSourceChange() { autoSizeInput(sourceSelect); state.sourceBranch = sourceSelect.value; saveSession(); loadDiff(); }
+  targetSelect.addEventListener('change', onTargetChange);
+  targetSelect.addEventListener('input', onTargetChange);
+  sourceSelect.addEventListener('change', onSourceChange);
+  sourceSelect.addEventListener('input', onSourceChange);
+
+  pathInput.addEventListener('keydown', e => { if (e.key === 'Enter') pathInput.blur(); });
+  pathInput.addEventListener('blur', () => { if (pathInput.value.trim() !== state.basePath) loadRepo(); });
 
   document.getElementById('btn-diff-comment').addEventListener('click', showDiffCommentForm);
-  document.getElementById('btn-copy-comments').addEventListener('click', () => exportComments('clipboard'));
-  document.getElementById('btn-save-comments').addEventListener('click', () => exportComments('file'));
 
-  document.getElementById('main-content').addEventListener('scroll', updateActiveFile);
+  let exportMode = 'clipboard';
+  const exportLabel = document.getElementById('export-mode-label');
+  const exportDropdown = document.getElementById('export-dropdown');
+
+  document.getElementById('btn-export').addEventListener('click', () => exportComments(exportMode));
+  document.getElementById('btn-export-toggle').addEventListener('click', (e) => {
+    e.stopPropagation();
+    exportDropdown.classList.toggle('hidden');
+  });
+  document.querySelectorAll('.split-btn-option').forEach(btn => {
+    btn.addEventListener('click', () => {
+      exportMode = btn.dataset.mode;
+      exportLabel.textContent = exportMode === 'clipboard' ? 'Copy' : 'Save';
+      exportDropdown.classList.add('hidden');
+    });
+  });
+  document.addEventListener('click', () => exportDropdown.classList.add('hidden'));
+
+  const mainContent = document.getElementById('main-content');
+  mainContent.addEventListener('scroll', () => {
+    updateActiveFile();
+    updateCommentNavPosition();
+    mainContent.classList.toggle('scrolled', mainContent.scrollTop > 16);
+  });
+
+  document.getElementById('sidebar-toggle').addEventListener('click', () => {
+    const sidebar = document.getElementById('sidebar');
+    sidebar.classList.toggle('collapsed');
+    const mc = document.getElementById('main-content');
+    if (sidebar.classList.contains('collapsed')) {
+      mc.style.left = '40px';
+    } else {
+      const w = getComputedStyle(document.documentElement).getPropertyValue('--sidebar-width').trim();
+      mc.style.left = w;
+    }
+  });
+
+  // Sidebar drag resize
+  const resizeHandle = document.getElementById('sidebar-resize');
+  const sidebar = document.getElementById('sidebar');
+  resizeHandle.addEventListener('mousedown', (e) => {
+    e.preventDefault();
+    sidebar.style.transition = 'none';
+    resizeHandle.classList.add('dragging');
+    const onMove = (e) => {
+      const width = Math.max(100, Math.min(600, e.clientX));
+      sidebar.style.width = width + 'px';
+      mainContent.style.left = width + 'px';
+      document.documentElement.style.setProperty('--sidebar-width', width + 'px');
+    };
+    const onUp = () => {
+      sidebar.style.transition = '';
+      resizeHandle.classList.remove('dragging');
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+      saveComments();
+    };
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+  });
 });
 
 async function loadRepo() {
@@ -141,20 +269,31 @@ async function loadRepo() {
 
   targetSelect.textContent = '';
   sourceSelect.textContent = '';
+  const savedTarget = state._savedTarget || '';
+  const savedSource = state._savedSource || '';
+  state._savedTarget = '';
+  state._savedSource = '';
+
   state.branches.forEach(b => {
     const opt1 = document.createElement('option');
     opt1.value = b; opt1.textContent = b;
-    if (b === 'main') opt1.selected = true;
+    if (savedTarget ? b === savedTarget : b === 'main') opt1.selected = true;
     targetSelect.appendChild(opt1);
 
     const opt2 = document.createElement('option');
     opt2.value = b; opt2.textContent = b;
-    if (b === state.currentBranch) opt2.selected = true;
+    if (savedSource ? b === savedSource : b === state.currentBranch) opt2.selected = true;
     sourceSelect.appendChild(opt2);
   });
 
   state.targetBranch = targetSelect.value;
   state.sourceBranch = sourceSelect.value;
+
+  autoSizeInput(pathInput);
+  autoSizeInput(targetSelect);
+  autoSizeInput(sourceSelect);
+
+  saveSession();
 
   await loadDiff();
 }
@@ -170,6 +309,7 @@ async function loadDiff() {
   renderFileTree();
   renderDiff();
   renderDiffComments();
+  updateCommentNav();
 }
 
 // === File Tree ===
@@ -201,7 +341,7 @@ function buildTree(parent, node, depth) {
 
   for (const folder of folders) {
     const div = createEl('div', { className: 'tree-folder' });
-    const header = createEl('div', { className: 'tree-folder-header', style: { paddingLeft: (depth * 12 + 8) + 'px' } });
+    const header = createEl('div', { className: 'tree-folder-header', style: { paddingLeft: (depth * 2 + 8) + 'px' } });
     const arrow = createEl('span', { className: 'arrow', textContent: '\u25BC' });
     const name = createEl('span', { textContent: folder.name + '/' });
     header.appendChild(arrow);
@@ -227,7 +367,7 @@ function buildTree(parent, node, depth) {
       className: 'tree-file' + (f.generated ? ' generated' : ''),
       'data-file-idx': file.data.idx,
       'data-file-path': f.path,
-      style: { paddingLeft: (depth * 12 + 20) + 'px' }
+      style: { paddingLeft: (depth * 2 + 20) + 'px' }
     });
 
     const icon = createEl('span', { className: 'file-status-icon ' + f.status, textContent: statusIcon(f.status) });
@@ -280,6 +420,7 @@ function renderDiff() {
   }
 
   state.files.forEach((f, idx) => container.appendChild(buildFileBox(f, idx)));
+  if (typeof updateCommentNav === 'function') updateCommentNav();
 }
 
 function buildFileBox(file, idx) {
@@ -288,6 +429,10 @@ function buildFileBox(file, idx) {
 
   // Header
   const header = createEl('div', { className: 'file-header' });
+
+  const toggle = createEl('span', { className: 'file-collapse-toggle', textContent: '\u25BC' });
+  header.appendChild(toggle);
+
   const pathSpan = createEl('span', { className: 'file-path' });
   if (file.status === 'renamed' && file.oldPath !== file.path) {
     const oldSpan = createEl('span', { className: 'old-path', textContent: file.oldPath });
@@ -299,23 +444,75 @@ function buildFileBox(file, idx) {
   header.appendChild(createEl('span', { className: 'file-status-badge ' + file.status, textContent: file.status }));
 
   const commentBtn = createEl('button', { className: 'btn btn-small btn-secondary', textContent: 'Comment' });
-  commentBtn.addEventListener('click', () => showFileCommentForm(idx, file.path));
+  commentBtn.addEventListener('click', (e) => { e.stopPropagation(); showFileCommentForm(idx, file.path); });
   header.appendChild(commentBtn);
   box.appendChild(header);
+
+  // Detect when header becomes sticky (pinned)
+  const sentinel = createEl('div', { className: 'sticky-sentinel' });
+  box.insertBefore(sentinel, header);
+  const observer = new IntersectionObserver(([e]) => {
+    box.classList.toggle('pinned', e.intersectionRatio === 0);
+  }, { root: document.getElementById('main-content'), threshold: 0 });
+  observer.observe(sentinel);
+
+  // Collapsible body
+  const body = createEl('div', { className: 'diff-file-body' });
 
   // File comments area
   const fileCommentsDiv = createEl('div', { className: 'file-comments', id: 'file-comments-' + idx });
   renderFileCommentBlocks(fileCommentsDiv, file.path);
-  box.appendChild(fileCommentsDiv);
+  body.appendChild(fileCommentsDiv);
 
-  // Body
+  // Diff content
   if (file.generated) {
-    box.appendChild(createEl('div', { className: 'generated-notice', textContent: 'Generated file \u2014 content hidden' }));
+    body.appendChild(createEl('div', { className: 'generated-notice', textContent: 'Generated file \u2014 content hidden' }));
   } else if (file.binary) {
-    box.appendChild(createEl('div', { className: 'binary-notice', textContent: 'Binary file changed' }));
+    body.appendChild(createEl('div', { className: 'binary-notice', textContent: 'Binary file changed' }));
   } else {
-    box.appendChild(buildDiffTable(file, idx, lang));
+    const outer = createEl('div', { className: 'diff-table-outer' });
+    const wrapper = createEl('div', { className: 'diff-table-wrapper' });
+    const table = buildDiffTable(file, idx, lang);
+    wrapper.appendChild(table);
+    outer.appendChild(wrapper);
+
+    // Sticky scrollbar at bottom
+    const scrollbar = createEl('div', { className: 'diff-sticky-scrollbar' });
+    const scrollInner = createEl('div', { className: 'diff-sticky-scrollbar-inner' });
+    scrollbar.appendChild(scrollInner);
+    outer.appendChild(scrollbar);
+
+    // Sync widths and scroll positions
+    const syncWidth = () => {
+      scrollInner.style.width = wrapper.scrollWidth + 'px';
+    };
+    let syncing = false;
+    scrollbar.addEventListener('scroll', () => {
+      if (syncing) return;
+      syncing = true;
+      wrapper.scrollLeft = scrollbar.scrollLeft;
+      syncing = false;
+    });
+    wrapper.addEventListener('scroll', () => {
+      if (syncing) return;
+      syncing = true;
+      scrollbar.scrollLeft = wrapper.scrollLeft;
+      syncing = false;
+    });
+    // Set initial width after render
+    requestAnimationFrame(syncWidth);
+    new ResizeObserver(syncWidth).observe(wrapper);
+
+    body.appendChild(outer);
   }
+
+  box.appendChild(body);
+
+  // Toggle collapse
+  header.addEventListener('click', () => {
+    body.classList.toggle('collapsed');
+    toggle.classList.toggle('collapsed');
+  });
 
   return box;
 }
@@ -365,8 +562,8 @@ function buildDiffTable(file, fileIdx, lang) {
 
       const oldTd = createEl('td', { className: 'line-num old', 'data-line': oldNum, textContent: oldNum });
       const newTd = createEl('td', { className: 'line-num new', 'data-line': newNum, textContent: newNum });
-      oldTd.addEventListener('click', handleLineClick);
-      newTd.addEventListener('click', handleLineClick);
+      oldTd.addEventListener('mousedown', handleLineMouseDown);
+      newTd.addEventListener('mousedown', handleLineMouseDown);
 
       const contentTd = createEl('td', { className: 'line-content' });
       const code = createEl('code', { className: langClass, textContent: line.content });
@@ -436,12 +633,14 @@ function buildInlineCommentRow(comment, fileIdx, filePath) {
   block.dataset.commentId = comment.id;
 
   const meta = createEl('div', { className: 'comment-meta' });
+  const toggle = createEl('span', { className: 'comment-collapse-toggle', textContent: '\u25BC' });
+  meta.appendChild(toggle);
   meta.appendChild(createEl('span', { textContent: 'Lines ' + (comment.startOld || comment.startNew) + '\u2013' + (comment.endOld || comment.endNew) }));
   meta.appendChild(createEl('span', { textContent: new Date(comment.timestamp).toLocaleString() }));
   block.appendChild(meta);
 
-  const textDiv = createEl('div', { className: 'comment-text', textContent: comment.text });
-  block.appendChild(textDiv);
+  const body = createEl('div', { className: 'comment-body' });
+  body.appendChild(createEl('div', { className: 'comment-text', textContent: comment.text }));
 
   const actions = createEl('div', { className: 'comment-actions' });
   const editBtn = createEl('button', { className: 'btn btn-small btn-secondary', textContent: 'Edit' });
@@ -450,42 +649,94 @@ function buildInlineCommentRow(comment, fileIdx, filePath) {
   delBtn.addEventListener('click', () => deleteInlineComment(filePath, comment.id));
   actions.appendChild(editBtn);
   actions.appendChild(delBtn);
-  block.appendChild(actions);
+  body.appendChild(actions);
+  block.appendChild(body);
+
+  meta.style.cursor = 'pointer';
+  meta.addEventListener('click', () => {
+    body.classList.toggle('collapsed');
+    toggle.classList.toggle('collapsed');
+  });
 
   td.appendChild(block);
   row.appendChild(td);
   return row;
 }
 
-// === Line Selection ===
-function handleLineClick(e) {
+// === Line Selection (click + drag) ===
+function getRowInfo(row) {
+  return {
+    oldLine: parseInt(row.dataset.oldLine) || null,
+    newLine: parseInt(row.dataset.newLine) || null,
+    row
+  };
+}
+
+function handleLineMouseDown(e) {
+  e.preventDefault();
   const td = e.currentTarget;
   const lineNum = parseInt(td.dataset.line);
   if (!lineNum) return;
 
   const row = td.closest('tr');
   const fileIdx = parseInt(row.dataset.fileIdx);
-  const oldLine = parseInt(row.dataset.oldLine) || null;
-  const newLine = parseInt(row.dataset.newLine) || null;
+  const info = getRowInfo(row);
 
   if (e.shiftKey && state.selectionFileIdx === fileIdx && state.selectionStart !== null) {
-    state.selectionEnd = { oldLine, newLine, row };
+    state.selectionEnd = info;
     highlightSelection();
-    showCommentPopover(e);
-  } else {
-    clearSelection();
-    state.selectionFileIdx = fileIdx;
-    state.selectionStart = { oldLine, newLine, row };
-    state.selectionEnd = { oldLine, newLine, row };
-    highlightSelection();
-    showCommentPopover(e);
+    insertInlineCommentForm();
+    return;
   }
+
+  // Toggle: clicking any line in the current selection closes the form
+  if (state.selectionFileIdx === fileIdx && state.selectionStart && state.selectionEnd) {
+    const fileEl = document.getElementById('file-' + fileIdx);
+    if (fileEl) {
+      const rows = Array.from(fileEl.querySelectorAll('.diff-line'));
+      const startIdx = rows.indexOf(state.selectionStart.row);
+      const endIdx = rows.indexOf(state.selectionEnd.row);
+      const rowIdx = rows.indexOf(row);
+      const min = Math.min(startIdx, endIdx);
+      const max = Math.max(startIdx, endIdx);
+      if (rowIdx >= min && rowIdx <= max) {
+        clearSelection();
+        return;
+      }
+    }
+  }
+
+  clearSelection();
+  state.selectionFileIdx = fileIdx;
+  state.selectionStart = info;
+  state.selectionEnd = info;
+  highlightSelection();
+
+  const onMove = (e) => {
+    const el = document.elementFromPoint(e.clientX, e.clientY);
+    if (!el) return;
+    const lineNumTd = el.closest('.line-num');
+    if (!lineNumTd) return;
+    const moveRow = lineNumTd.closest('tr');
+    if (!moveRow || parseInt(moveRow.dataset.fileIdx) !== fileIdx) return;
+    state.selectionEnd = getRowInfo(moveRow);
+    highlightSelection();
+  };
+
+  const onUp = () => {
+    document.removeEventListener('mousemove', onMove);
+    document.removeEventListener('mouseup', onUp);
+    insertInlineCommentForm();
+  };
+
+  document.addEventListener('mousemove', onMove);
+  document.addEventListener('mouseup', onUp);
 }
 
 function clearSelection() {
   document.querySelectorAll('.line-num.selected').forEach(el => el.classList.remove('selected'));
   document.querySelectorAll('.diff-line.selected-line').forEach(el => el.classList.remove('selected-line'));
-  document.getElementById('comment-popover').classList.add('hidden');
+  document.querySelectorAll('.comment-form-row.temp').forEach(el => el.remove());
   state.selectionStart = null;
   state.selectionEnd = null;
   state.selectionFileIdx = null;
@@ -510,20 +761,6 @@ function highlightSelection() {
     rows[i].classList.add('selected-line');
     rows[i].querySelectorAll('.line-num').forEach(td => td.classList.add('selected'));
   }
-}
-
-function showCommentPopover(e) {
-  const popover = document.getElementById('comment-popover');
-  const btn = document.getElementById('btn-add-comment');
-
-  popover.classList.remove('hidden');
-  popover.style.top = (e.clientY - 10) + 'px';
-  popover.style.left = (e.clientX + 20) + 'px';
-
-  btn.onclick = () => {
-    popover.classList.add('hidden');
-    insertInlineCommentForm();
-  };
 }
 
 function insertInlineCommentForm() {
@@ -622,11 +859,14 @@ function renderFileCommentBlocks(container, filePath) {
     block.dataset.commentId = c.id;
 
     const meta = createEl('div', { className: 'comment-meta' });
+    const toggle = createEl('span', { className: 'comment-collapse-toggle', textContent: '\u25BC' });
+    meta.appendChild(toggle);
     meta.appendChild(createEl('span', { textContent: 'File comment' }));
     meta.appendChild(createEl('span', { textContent: new Date(c.timestamp).toLocaleString() }));
     block.appendChild(meta);
 
-    block.appendChild(createEl('div', { className: 'comment-text', textContent: c.text }));
+    const body = createEl('div', { className: 'comment-body' });
+    body.appendChild(createEl('div', { className: 'comment-text', textContent: c.text }));
 
     const actions = createEl('div', { className: 'comment-actions' });
     const editBtn = createEl('button', { className: 'btn btn-small btn-secondary', textContent: 'Edit' });
@@ -635,7 +875,14 @@ function renderFileCommentBlocks(container, filePath) {
     delBtn.addEventListener('click', () => deleteFileComment(filePath, c.id));
     actions.appendChild(editBtn);
     actions.appendChild(delBtn);
-    block.appendChild(actions);
+    body.appendChild(actions);
+    block.appendChild(body);
+
+    meta.style.cursor = 'pointer';
+    meta.addEventListener('click', () => {
+      body.classList.toggle('collapsed');
+      toggle.classList.toggle('collapsed');
+    });
 
     container.appendChild(block);
   }
@@ -683,11 +930,14 @@ function renderDiffComments() {
     block.dataset.commentId = c.id;
 
     const meta = createEl('div', { className: 'comment-meta' });
+    const toggle = createEl('span', { className: 'comment-collapse-toggle', textContent: '\u25BC' });
+    meta.appendChild(toggle);
     meta.appendChild(createEl('span', { textContent: 'Overall comment' }));
     meta.appendChild(createEl('span', { textContent: new Date(c.timestamp).toLocaleString() }));
     block.appendChild(meta);
 
-    block.appendChild(createEl('div', { className: 'comment-text', textContent: c.text }));
+    const body = createEl('div', { className: 'comment-body' });
+    body.appendChild(createEl('div', { className: 'comment-text', textContent: c.text }));
 
     const actions = createEl('div', { className: 'comment-actions' });
     const editBtn = createEl('button', { className: 'btn btn-small btn-secondary', textContent: 'Edit' });
@@ -696,11 +946,19 @@ function renderDiffComments() {
     delBtn.addEventListener('click', () => deleteDiffComment(c.id));
     actions.appendChild(editBtn);
     actions.appendChild(delBtn);
-    block.appendChild(actions);
+    body.appendChild(actions);
+    block.appendChild(body);
+
+    meta.style.cursor = 'pointer';
+    meta.addEventListener('click', () => {
+      body.classList.toggle('collapsed');
+      toggle.classList.toggle('collapsed');
+    });
 
     wrapper.appendChild(block);
   }
   area.appendChild(wrapper);
+  if (typeof updateCommentNav === 'function') updateCommentNav();
 }
 
 // === Comment CRUD ===
@@ -783,6 +1041,7 @@ function deleteFileComment(filePath, commentId) {
     renderFileCommentBlocks(area, filePath);
   }
   renderFileTree();
+  updateCommentNav();
 }
 
 function editDiffComment(commentId) {
@@ -860,8 +1119,8 @@ async function handleExpand(e) {
       });
       const oldTd = createEl('td', { className: 'line-num old', 'data-line': oldNum, textContent: oldNum });
       const newTd = createEl('td', { className: 'line-num new', 'data-line': newNum, textContent: newNum });
-      oldTd.addEventListener('click', handleLineClick);
-      newTd.addEventListener('click', handleLineClick);
+      oldTd.addEventListener('mousedown', handleLineMouseDown);
+      newTd.addEventListener('mousedown', handleLineMouseDown);
       const contentTd = createEl('td', { className: 'line-content' });
       const code = createEl('code', { className: langClass, textContent: content });
       if (langClass) hljs.highlightElement(code);
@@ -900,8 +1159,8 @@ async function handleExpand(e) {
       });
       const oldTd = createEl('td', { className: 'line-num old', 'data-line': oldNum, textContent: oldNum });
       const newTd = createEl('td', { className: 'line-num new', 'data-line': newNum, textContent: newNum });
-      oldTd.addEventListener('click', handleLineClick);
-      newTd.addEventListener('click', handleLineClick);
+      oldTd.addEventListener('mousedown', handleLineMouseDown);
+      newTd.addEventListener('mousedown', handleLineMouseDown);
       const contentTd = createEl('td', { className: 'line-content' });
       const code = createEl('code', { className: langClass, textContent: content });
       if (langClass) hljs.highlightElement(code);
@@ -1050,12 +1309,81 @@ function showToast(message) {
   setTimeout(() => { toast.style.opacity = '0'; setTimeout(() => toast.remove(), 300); }, 2000);
 }
 
-// Dismiss popover on outside click
-document.addEventListener('click', (e) => {
-  if (!e.target.closest('.line-num') && !e.target.closest('.comment-popover') && !e.target.closest('.comment-form')) {
-    const popover = document.getElementById('comment-popover');
-    if (popover && !popover.classList.contains('hidden')) {
-      popover.classList.add('hidden');
-    }
+// === Comment Navigation ===
+let _commentNavIdx = -1;
+
+function updateCommentNav() {
+  const total = countAllComments();
+  const nav = document.getElementById('comment-nav');
+  if (total === 0) {
+    nav.classList.add('hidden');
+    return;
   }
-});
+  nav.classList.remove('hidden');
+  _commentNavIdx = -1;
+  updateCommentNavDisplay();
+}
+
+function updateCommentNavDisplay() {
+  const countEl = document.getElementById('comment-nav-count');
+  const els = getAllCommentElements();
+  const current = _commentNavIdx >= 0 ? _commentNavIdx + 1 : getVisibleCommentIndex(els) + 1;
+  countEl.textContent = current + ' / ' + els.length;
+}
+
+function getVisibleCommentIndex(els) {
+  if (els.length === 0) return 0;
+  const main = document.getElementById('main-content');
+  const mainRect = main.getBoundingClientRect();
+  // Find the first comment whose bottom is within or below the visible area
+  for (let i = 0; i < els.length; i++) {
+    const rect = els[i].getBoundingClientRect();
+    if (rect.bottom >= mainRect.top && rect.top <= mainRect.bottom) return i;
+  }
+  // Fallback: find the last comment above the viewport
+  let best = 0;
+  for (let i = 0; i < els.length; i++) {
+    const rect = els[i].getBoundingClientRect();
+    if (rect.bottom < mainRect.top) best = i;
+    else break;
+  }
+  return best;
+}
+
+function updateCommentNavPosition() {
+  const els = getAllCommentElements();
+  if (els.length === 0) return;
+  _commentNavIdx = -1;
+  updateCommentNavDisplay();
+}
+
+function countAllComments() {
+  let n = state.comments.diff ? state.comments.diff.length : 0;
+  for (const fp of Object.keys(state.comments.files)) {
+    const fc = state.comments.files[fp];
+    n += (fc.file ? fc.file.length : 0) + (fc.inline ? fc.inline.length : 0);
+  }
+  return n;
+}
+
+function getAllCommentElements() {
+  return Array.from(document.querySelectorAll('.comment-block'));
+}
+
+function jumpToComment(direction) {
+  const els = getAllCommentElements();
+  if (els.length === 0) return;
+  if (_commentNavIdx < 0) _commentNavIdx = getVisibleCommentIndex(els);
+  _commentNavIdx += direction;
+  if (_commentNavIdx < 0) _commentNavIdx = els.length - 1;
+  if (_commentNavIdx >= els.length) _commentNavIdx = 0;
+  els[_commentNavIdx].scrollIntoView({ behavior: 'smooth', block: 'center' });
+  els.forEach(el => el.classList.remove('comment-highlight'));
+  els[_commentNavIdx].classList.add('comment-highlight');
+  setTimeout(() => els[_commentNavIdx]?.classList.remove('comment-highlight'), 1500);
+  updateCommentNavDisplay();
+}
+
+document.getElementById('comment-nav-up').addEventListener('click', () => jumpToComment(-1));
+document.getElementById('comment-nav-down').addEventListener('click', () => jumpToComment(1));
+
