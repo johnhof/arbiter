@@ -662,6 +662,13 @@ function handleLineMouseDown(e) {
     return;
   }
 
+  // Toggle: clicking the same line again closes the form
+  if (state.selectionFileIdx === fileIdx && state.selectionStart &&
+      state.selectionStart.row === row && state.selectionEnd && state.selectionEnd.row === row) {
+    clearSelection();
+    return;
+  }
+
   clearSelection();
   state.selectionFileIdx = fileIdx;
   state.selectionStart = info;
