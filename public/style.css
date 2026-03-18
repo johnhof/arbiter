@@ -101,7 +101,7 @@ select { min-width: 80px; cursor: pointer; text-overflow: ellipsis; overflow: hi
   font-size: 10px;
 }
 .split-btn-action { border-radius: 0 6px 6px 0; background: #1a5fcb; white-space: nowrap; }
-#export-mode-label { display: inline-block; width: 32px; text-align: center; }
+#export-mode-label { display: inline-block; width: 46px; text-align: center; }
 .split-btn-dropdown {
   position: absolute;
   top: 100%;
@@ -422,6 +422,7 @@ select { min-width: 80px; cursor: pointer; text-overflow: ellipsis; overflow: hi
   background: var(--surface-raised);
   position: sticky;
   left: 0;
+  max-width: calc(100vw - var(--sidebar-width));
 }
 .comment-block-row td {
   padding: 0 16px 0 16px;
@@ -452,8 +453,13 @@ select { min-width: 80px; cursor: pointer; text-overflow: ellipsis; overflow: hi
 .comment-hint {
   font-size: 11px;
   color: var(--text-muted);
-  margin-top: 4px;
   opacity: 0.6;
+  margin-right: auto;
+}
+.comment-form.pinned {
+  position: sticky;
+  top: 0;
+  z-index: 11;
 }
 .comment-form-actions {
   display: flex; gap: 6px; margin-top: 6px; justify-content: flex-end;

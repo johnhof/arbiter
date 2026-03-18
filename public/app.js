@@ -164,11 +164,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     const urlPath = urlParams.get('path') || '';
     const urlTarget = urlParams.get('target') || '';
     const urlSource = urlParams.get('source') || '';
+    const urlExport = urlParams.get('export') || '';
 
     const saved = JSON.parse(localStorage.getItem('arbiter:session') || '{}');
     const init = await api('/api/initial-path');
     const initialPath = urlPath || init.path || saved.path;
-    state._initExportMode = init.exportMode || '';
+    state._initExportMode = urlExport || init.exportMode || '';
     if (initialPath) {
       pathInput.value = initialPath;
       autoSizeInput(pathInput);
@@ -823,8 +824,8 @@ function insertInlineCommentForm() {
   actionsDiv.appendChild(cancelBtn);
   actionsDiv.appendChild(saveBtn);
   formDiv.appendChild(textarea);
-  addCommentFormShortcuts(textarea, saveBtn);
   formDiv.appendChild(actionsDiv);
+  addCommentFormShortcuts(textarea, saveBtn, cancelBtn, actionsDiv);
   td.appendChild(formDiv);
   formRow.appendChild(td);
 
@@ -832,15 +833,20 @@ function insertInlineCommentForm() {
   textarea.focus();
 }
 
-function addCommentFormShortcuts(textarea, saveBtn) {
+function addCommentFormShortcuts(textarea, saveBtn, cancelBtn, actionsDiv) {
+  let lastEscape = 0;
   textarea.addEventListener('keydown', (e) => {
     if (e.key === 'Enter' && e.shiftKey) {
       e.preventDefault();
       saveBtn.click();
+    } else if (e.key === 'Escape') {
+      const now = Date.now();
+      if (now - lastEscape < 500) { cancelBtn.click(); }
+      lastEscape = now;
     }
   });
-  const hint = createEl('div', { className: 'comment-hint', textContent: 'Shift+Enter to submit' });
-  textarea.parentElement.insertBefore(hint, textarea.nextSibling);
+  const hint = createEl('span', { className: 'comment-hint', textContent: 'Shift+Enter to submit · Esc Esc to cancel' });
+  actionsDiv.insertBefore(hint, actionsDiv.firstChild);
 }
 
 // === File-Level Comments ===
@@ -848,7 +854,7 @@ function showFileCommentForm(fileIdx, filePath) {
   const area = document.getElementById('file-comments-' + fileIdx);
   if (area.querySelector('.comment-form')) return;
 
-  const formDiv = createEl('div', { className: 'comment-form' });
+  const formDiv = createEl('div', { className: 'comment-form pinned' });
   const textarea = createEl('textarea', { placeholder: 'Comment on this file...' });
   const actionsDiv = createEl('div', { className: 'comment-form-actions' });
 
@@ -870,8 +876,8 @@ function showFileCommentForm(fileIdx, filePath) {
   actionsDiv.appendChild(cancelBtn);
   actionsDiv.appendChild(saveBtn);
   formDiv.appendChild(textarea);
-  addCommentFormShortcuts(textarea, saveBtn);
   formDiv.appendChild(actionsDiv);
+  addCommentFormShortcuts(textarea, saveBtn, cancelBtn, actionsDiv);
   area.appendChild(formDiv);
   textarea.focus();
 }
@@ -922,7 +928,7 @@ function showDiffCommentForm() {
   const area = document.getElementById('diff-comment-area');
   if (area.querySelector('.comment-form')) return;
 
-  const formDiv = createEl('div', { className: 'comment-form', style: { marginBottom: '16px' } });
+  const formDiv = createEl('div', { className: 'comment-form pinned', style: { marginBottom: '16px' } });
   const textarea = createEl('textarea', { placeholder: 'Overall comment on this diff...' });
   const actionsDiv = createEl('div', { className: 'comment-form-actions' });
 
@@ -942,8 +948,8 @@ function showDiffCommentForm() {
   actionsDiv.appendChild(cancelBtn);
   actionsDiv.appendChild(saveBtn);
   formDiv.appendChild(textarea);
-  addCommentFormShortcuts(textarea, saveBtn);
   formDiv.appendChild(actionsDiv);
+  addCommentFormShortcuts(textarea, saveBtn, cancelBtn, actionsDiv);
   area.appendChild(formDiv);
   textarea.focus();
 }
@@ -1296,8 +1302,8 @@ function exportComments(mode) {
       body: JSON.stringify({ path: state.basePath, source: state.sourceBranch, target: state.targetBranch, markdown: output }),
     }).then(r => {
       if (r.ok) showToast('Prompt accepted — waiting for agent');
-      else showToast('Failed to accept prompt');
-    }).catch(() => showToast('Failed to accept prompt'));
+      else showToast('Failed to accept prompt', 'error');
+    }).catch(() => showToast('Failed to accept prompt', 'error'));
   } else {
     const blob = new Blob([output], { type: 'text/markdown' });
     const url = URL.createObjectURL(blob);
@@ -1336,12 +1342,13 @@ function getCommentContext(file, comment, contextSize) {
   return result;
 }
 
-function showToast(message) {
+function showToast(message, type) {
+  const bg = type === 'error' ? '#da3633' : '#238636';
   const toast = createEl('div', {
     textContent: message,
     style: {
       position: 'fixed', bottom: '24px', right: '24px',
-      background: '#238636', color: '#fff',
+      background: bg, color: '#fff',
       padding: '8px 16px', borderRadius: '6px',
       fontSize: '13px', zIndex: '999',
       opacity: '0', transition: 'opacity 0.3s'

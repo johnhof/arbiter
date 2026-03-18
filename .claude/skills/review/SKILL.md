@@ -23,12 +23,12 @@ If the user doesn't specify, use sensible defaults. If the current branch is `ma
 Construct the URL with query parameters:
 
 ```
-http://localhost:7429/?path=<repo-path>&source=<source-branch>&target=<target-branch>
+http://localhost:7429/?path=<repo-path>&source=<source-branch>&target=<target-branch>&export=accept
 ```
 
 URL-encode the path and branch names. Present the link to the user:
 
-> **[Open in Arbiter](http://localhost:7429/?path=%2Fpath%2Fto%2Frepo&source=feature-branch&target=main)**
+> **[Open in Arbiter](http://localhost:7429/?path=%2Fpath%2Fto%2Frepo&source=feature-branch&target=main&export=accept)**
 >
 > Review the diff, leave your comments, then click **Accept Prompt** when done. I'll pick up your comments automatically.
 
