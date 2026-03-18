@@ -159,15 +159,24 @@ document.addEventListener('DOMContentLoaded', async () => {
   const sourceSelect = document.getElementById('source-branch');
 
   try {
+    // URL query params take highest priority, then CLI path, then saved session
+    const urlParams = new URLSearchParams(window.location.search);
+    const urlPath = urlParams.get('path') || '';
+    const urlTarget = urlParams.get('target') || '';
+    const urlSource = urlParams.get('source') || '';
+
     const saved = JSON.parse(localStorage.getItem('arbiter:session') || '{}');
     const init = await api('/api/initial-path');
-    const initialPath = init.path || saved.path;
+    const initialPath = urlPath || init.path || saved.path;
     state._initExportMode = init.exportMode || '';
     if (initialPath) {
       pathInput.value = initialPath;
       autoSizeInput(pathInput);
-      // Only use saved branches if no CLI path was provided (i.e., using saved session)
-      if (!init.path && saved.path) {
+      // URL params override everything; otherwise fall back to saved session
+      if (urlTarget || urlSource) {
+        state._savedTarget = urlTarget;
+        state._savedSource = urlSource;
+      } else if (!init.path && saved.path) {
         state._savedTarget = saved.target || '';
         state._savedSource = saved.source || '';
       }
