@@ -162,6 +162,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const saved = JSON.parse(localStorage.getItem('arbiter:session') || '{}');
     const init = await api('/api/initial-path');
     const initialPath = init.path || saved.path;
+    state._initExportMode = init.exportMode || '';
     if (initialPath) {
       pathInput.value = initialPath;
       autoSizeInput(pathInput);
@@ -191,6 +192,12 @@ document.addEventListener('DOMContentLoaded', async () => {
   const exportLabel = document.getElementById('export-mode-label');
   const exportDropdown = document.getElementById('export-dropdown');
 
+  if (state._initExportMode && ['clipboard', 'file', 'send'].includes(state._initExportMode)) {
+    exportMode = state._initExportMode;
+    exportLabel.textContent = exportMode === 'clipboard' ? 'Copy' : exportMode === 'file' ? 'Save' : 'Send';
+  }
+  delete state._initExportMode;
+
   document.getElementById('btn-export').addEventListener('click', () => exportComments(exportMode));
   document.getElementById('btn-export-toggle').addEventListener('click', (e) => {
     e.stopPropagation();
@@ -199,7 +206,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   document.querySelectorAll('.split-btn-option').forEach(btn => {
     btn.addEventListener('click', () => {
       exportMode = btn.dataset.mode;
-      exportLabel.textContent = exportMode === 'clipboard' ? 'Copy' : 'Save';
+      exportLabel.textContent = exportMode === 'clipboard' ? 'Copy' : exportMode === 'file' ? 'Save' : 'Send';
       exportDropdown.classList.add('hidden');
     });
   });
@@ -1188,12 +1195,16 @@ function exportComments(mode) {
   const lines = [];
   lines.push('# Code Review: Apply Requested Changes\n');
   lines.push('You are reviewing a diff of `' + state.sourceBranch + '` compared to `' + state.targetBranch + '` in `' + state.basePath + '`.\n');
-  lines.push('Below are review comments left by the reviewer. Follow this process:\n');
+  lines.push('Below are review comments left by the reviewer. **Do not start making changes yet.** Follow this process:\n');
   lines.push('1. **Read all comments first** before making any changes.');
-  lines.push('2. **Identify duplicates and overarching themes** \u2014 where multiple comments point to the same underlying issue or could be solved by a single refactor, group them and solve them with one unified change. Prefer simplicity: one common solution that addresses multiple comments is better than N individual fixes.');
-  lines.push('3. **Resolve broad/architectural comments first** \u2014 these may affect how you approach the specific comments.');
-  lines.push('4. **Then fix all remaining specific comments**, applying each requested change precisely.');
-  lines.push('5. **Verify** that no comment was missed and that fixes don\'t conflict with each other.\n');
+  lines.push('2. **Identify duplicates and overarching themes** \u2014 where multiple comments point to the same underlying issue or could be solved by a single refactor, group them and solve them with one unified change.');
+  lines.push('3. **Build a plan** and present it to the reviewer before executing. The plan must:');
+  lines.push('   - List every comment (quoted) with its file and line location');
+  lines.push('   - For each comment, describe your proposed solution concisely');
+  lines.push('   - Where multiple comments are addressed by a single change, group them and explain the unified approach');
+  lines.push('   - Flag any comments that are ambiguous, conflicting, or where you see a better alternative \u2014 explain your reasoning');
+  lines.push('4. **Wait for approval.** The reviewer may modify the plan, reject specific items, or ask for a different approach. Do not proceed until they confirm.');
+  lines.push('5. **Execute the approved plan**, then verify no comment was missed and that fixes don\'t conflict with each other.\n');
   lines.push('---\n');
 
   if (state.comments.diff && state.comments.diff.length > 0) {
@@ -1255,6 +1266,15 @@ function exportComments(mode) {
       document.body.removeChild(textarea);
       showToast('Comments copied to clipboard');
     });
+  } else if (mode === 'send') {
+    fetch('/api/submit', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ markdown: output }),
+    }).then(r => {
+      if (r.ok) showToast('Comments sent — server exiting');
+      else showToast('Failed to send comments');
+    }).catch(() => showToast('Failed to send comments'));
   } else {
     const blob = new Blob([output], { type: 'text/markdown' });
     const url = URL.createObjectURL(blob);

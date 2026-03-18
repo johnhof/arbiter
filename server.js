@@ -215,6 +215,7 @@ app.get('/api/file-content', (req, res) => {
 
 const preferredPort = parseInt(process.argv.find((a, i) => process.argv[i-1] === '--port') || '3000');
 const cliPath = process.argv.find((a, i) => process.argv[i-1] === '--path') || '';
+const cliExportMode = process.argv.find((a, i) => process.argv[i-1] === '--export') || '';
 
 let initialPath = cliPath;
 if (!initialPath) {
@@ -226,7 +227,15 @@ if (!initialPath) {
 }
 
 app.get('/api/initial-path', (req, res) => {
-  res.json({ path: initialPath });
+  res.json({ path: initialPath, exportMode: cliExportMode || '' });
+});
+
+app.post('/api/submit', (req, res) => {
+  const { markdown } = req.body;
+  if (!markdown) return res.status(400).json({ error: 'No markdown provided' });
+  res.json({ ok: true });
+  process.stdout.write(markdown);
+  setTimeout(() => process.exit(0), 100);
 });
 
 function startServer(port) {
