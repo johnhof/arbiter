@@ -358,6 +358,9 @@ select { min-width: 80px; cursor: pointer; text-overflow: ellipsis; overflow: hi
   text-align: left;
   color: var(--text-muted);
   user-select: none;
+}
+.line-num.old {
+  padding-left: 6px;
   cursor: pointer;
   font-size: 12px;
   opacity: 0.6;
