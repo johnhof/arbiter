@@ -351,16 +351,19 @@ select { min-width: 80px; cursor: pointer; text-overflow: ellipsis; overflow: hi
 }
 
 .line-num {
-  width: 50px;
-  min-width: 50px;
-  max-width: 50px;
-  padding: 0 8px;
+  width: 42px;
+  min-width: 42px;
+  max-width: 42px;
+  padding: 0 4px;
   text-align: right;
   color: var(--text-muted);
   user-select: none;
   cursor: pointer;
   font-size: 12px;
   opacity: 0.6;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .line-num:hover { opacity: 1; color: var(--accent); }
 .line-num.selected { opacity: 1; color: var(--accent); background: rgba(88,166,255,0.15); }
