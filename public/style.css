@@ -355,7 +355,7 @@ select { min-width: 80px; cursor: pointer; text-overflow: ellipsis; overflow: hi
   min-width: 42px;
   max-width: 42px;
   padding: 0 4px;
-  text-align: right;
+  text-align: left;
   color: var(--text-muted);
   user-select: none;
   cursor: pointer;

@@ -26,14 +26,37 @@ function storageKey() {
 function loadComments() {
   try {
     const raw = localStorage.getItem(storageKey());
-    if (raw) state.comments = JSON.parse(raw);
-    else state.comments = { diff: [], files: {} };
+    if (raw) {
+      const data = JSON.parse(raw);
+      if (data.comments) {
+        state.comments = data.comments;
+        if (data.sidebarWidth) applySidebarWidth(data.sidebarWidth);
+      } else {
+        // Legacy format: raw comments object
+        state.comments = data;
+      }
+    } else {
+      state.comments = { diff: [], files: {} };
+    }
   } catch { state.comments = { diff: [], files: {} }; }
 }
 
 function saveComments() {
-  localStorage.setItem(storageKey(), JSON.stringify(state.comments));
-  if (typeof updateCommentNav === 'function') updateCommentNav();
+  const sidebar = document.getElementById('sidebar');
+  const sidebarWidth = sidebar ? parseInt(getComputedStyle(sidebar).width) : null;
+  localStorage.setItem(storageKey(), JSON.stringify({
+    comments: state.comments,
+    sidebarWidth,
+  }));
+}
+
+function applySidebarWidth(width) {
+  const sidebar = document.getElementById('sidebar');
+  const main = document.getElementById('main-content');
+  if (!sidebar || !main || sidebar.classList.contains('collapsed')) return;
+  sidebar.style.width = width + 'px';
+  main.style.left = width + 'px';
+  document.documentElement.style.setProperty('--sidebar-width', width + 'px');
 }
 
 function saveSession() {
@@ -219,6 +242,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       resizeHandle.classList.remove('dragging');
       document.removeEventListener('mousemove', onMove);
       document.removeEventListener('mouseup', onUp);
+      saveComments();
     };
     document.addEventListener('mousemove', onMove);
     document.addEventListener('mouseup', onUp);
@@ -396,6 +420,7 @@ function renderDiff() {
   }
 
   state.files.forEach((f, idx) => container.appendChild(buildFileBox(f, idx)));
+  if (typeof updateCommentNav === 'function') updateCommentNav();
 }
 
 function buildFileBox(file, idx) {
@@ -933,6 +958,7 @@ function renderDiffComments() {
     wrapper.appendChild(block);
   }
   area.appendChild(wrapper);
+  if (typeof updateCommentNav === 'function') updateCommentNav();
 }
 
 // === Comment CRUD ===
@@ -1015,6 +1041,7 @@ function deleteFileComment(filePath, commentId) {
     renderFileCommentBlocks(area, filePath);
   }
   renderFileTree();
+  updateCommentNav();
 }
 
 function editDiffComment(commentId) {
