@@ -5,28 +5,16 @@ Browser-based git diff reviewer with inline commenting. Review branch diffs GitH
 ## Installation
 
 ```bash
-git clone git@github.com:johnhof/arbiter.git ~/.local/share/arbiter
-cd ~/.local/share/arbiter && npm install
+git clone git@github.com:johnhof/arbiter.git
+cd arbiter && npm install -g .
 ```
 
-You can clone it anywhere — just set `ARBITER_DIR` accordingly.
-
-### Set `ARBITER_DIR` for Claude Code
-
-The skill needs to know where Arbiter is installed. Add it to your user settings at `~/.claude/settings.json`:
-
-```json
-{
-  "env": {
-    "ARBITER_DIR": "/home/youruser/.local/share/arbiter"
-  }
-}
-```
+This installs `arbiter` as a global command. You can verify with `arbiter --help` or `which arbiter`.
 
 ## Usage
 
 ```bash
-node server.js --port 3000
+arbiter --port 3000
 ```
 
 Opens at `http://localhost:3000` (auto-increments port if taken). Defaults to the git root of the current working directory.
@@ -45,7 +33,7 @@ Use `--export send` to make "Send Prompt" the default action. When the user clic
 
 ```bash
 # Agent spawns this and blocks until the human finishes reviewing
-output=$(node ~/.local/share/arbiter/server.js --path /path/to/repo --export send)
+output=$(arbiter --path /path/to/repo --export send)
 # $output contains the structured review prompt
 ```
 
@@ -57,7 +45,7 @@ output=$(node ~/.local/share/arbiter/server.js --path /path/to/repo --export sen
 - **Collapsible UI** — file diff boxes, sidebar, and individual comments all collapse independently
 - **Comment navigation** — fixed widget shows current/total comment count with prev/next jumping, tracks scroll position
 - **Comment persistence** — saved to localStorage, keyed by repo + branch pair
-- **Agent prompt export** — copy to clipboard or download as markdown, formatted as actionable instructions with surrounding code context
+- **Agent prompt export** — copy to clipboard, download as markdown, or send directly to a calling agent
 - **Generated file detection** — respects `.gitattributes` patterns to collapse generated/binary files
 - **Sticky headers** — file headers pin to the top while scrolling; horizontal scrollbar sticks to the bottom
 - **Responsive layout** — header wraps and stacks at narrow viewports, sidebar hides below 900px
@@ -65,27 +53,25 @@ output=$(node ~/.local/share/arbiter/server.js --path /path/to/repo --export sen
 
 ## Claude Code Skill
 
-Arbiter ships with a Claude Code skill at `.claude/skills/review/` that automates the review loop: Claude launches Arbiter, waits for comments, then applies the changes.
+Arbiter ships with a Claude Code skill at `.claude/skills/review/` that automates the review loop: Claude generates an Arbiter link, the user reviews and leaves comments, then pastes the exported prompt back for Claude to apply.
 
 ### Install the skill
 
-Two steps:
+Add the skill directory to your Claude Code settings (`~/.claude/settings.json` for global, or `.claude/settings.json` for per-project):
 
-**1. Set `ARBITER_DIR`** (if you haven't already — see Installation above)
-
-**2. Register the skill** — either globally or per-project:
-
-Add to `~/.claude/settings.json` (global) or `.claude/settings.json` (project):
 ```json
 {
-  "skills": ["~/.local/share/arbiter/.claude/skills"]
+  "skills": ["<path-to-arbiter>/.claude/skills"]
 }
 ```
 
 Or symlink into a project's existing skills directory:
+
 ```bash
-ln -s ~/.local/share/arbiter/.claude/skills/review .claude/skills/arbiter-review
+ln -s <path-to-arbiter>/.claude/skills/review .claude/skills/arbiter-review
 ```
+
+Find your install path with `npm ls -g arbiter` or `which arbiter`.
 
 ### Use the skill
 
@@ -101,7 +87,7 @@ review my changes before I merge
 let me review the diff on feature-branch
 ```
 
-Claude will launch Arbiter, tell you the URL, and wait. Review the diff in your browser, leave comments, click **Send Prompt**, and Claude applies your feedback.
+Claude generates an Arbiter link pre-loaded with the right repo and branches. Review the diff in your browser, leave comments, then export with **Copy Prompt** and paste back into Claude.
 
 ## Architecture
 
