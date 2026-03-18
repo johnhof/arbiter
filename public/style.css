@@ -411,8 +411,18 @@ select { min-width: 80px; cursor: pointer; text-overflow: ellipsis; overflow: hi
 .expand-btn:hover { text-decoration: underline; }
 
 /* === Comments === */
-.comment-form-row td { padding: 8px 16px; background: var(--surface-raised); }
-.comment-block-row td { padding: 0 16px 0 16px; background: var(--comment-bg); }
+.comment-form-row td {
+  padding: 8px 16px;
+  background: var(--surface-raised);
+  position: sticky;
+  left: 0;
+}
+.comment-block-row td {
+  padding: 0 16px 0 16px;
+  background: var(--comment-bg);
+  position: sticky;
+  left: 0;
+}
 
 .comment-form {
   background: var(--comment-bg);
