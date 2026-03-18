@@ -452,6 +452,7 @@ select { min-width: 80px; cursor: pointer; text-overflow: ellipsis; overflow: hi
 .comment-block.comment-highlight { border-left-color: var(--green); box-shadow: 0 0 8px rgba(63,185,80,0.3); transition: box-shadow 0.3s, border-left-color 0.3s; }
 
 /* File-level & diff-level comments */
+.file-comments:empty { padding: 0; }
 .file-comments, .diff-comments {
   padding: 8px 16px;
 }
