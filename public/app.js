@@ -191,7 +191,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     const sidebar = document.getElementById('sidebar');
     sidebar.classList.toggle('collapsed');
     const mc = document.getElementById('main-content');
-    mc.style.left = sidebar.classList.contains('collapsed') ? '40px' : '';
+    if (sidebar.classList.contains('collapsed')) {
+      mc.style.left = '40px';
+    } else {
+      const w = getComputedStyle(document.documentElement).getPropertyValue('--sidebar-width').trim();
+      mc.style.left = w;
+    }
   });
 
   // Sidebar drag resize

@@ -152,10 +152,11 @@ select { min-width: 80px; cursor: pointer; text-overflow: ellipsis; overflow: hi
   z-index: 60;
 }
 .sidebar-resize:hover, .sidebar-resize.dragging { background: var(--accent); }
-#sidebar.collapsed { width: 40px; overflow: hidden; }
+#sidebar.collapsed { width: 40px !important; overflow: hidden; }
 #sidebar.collapsed #file-tree { display: none; }
 #sidebar.collapsed .sidebar-header span:not(.sidebar-toggle) { display: none; }
 #sidebar.collapsed .sidebar-toggle { transform: rotate(180deg); }
+#sidebar.collapsed .sidebar-resize { display: none; }
 .sidebar-header {
   padding: 12px 16px;
   font-size: 13px;
