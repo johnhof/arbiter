@@ -132,7 +132,6 @@ new ResizeObserver(syncHeaderHeight).observe(document.getElementById('header'));
 // === Init ===
 document.addEventListener('DOMContentLoaded', async () => {
   const pathInput = document.getElementById('base-path');
-  const btnLoad = document.getElementById('btn-load');
   const targetSelect = document.getElementById('target-branch');
   const sourceSelect = document.getElementById('source-branch');
 
@@ -160,8 +159,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   sourceSelect.addEventListener('change', onSourceChange);
   sourceSelect.addEventListener('input', onSourceChange);
 
-  btnLoad.addEventListener('click', loadRepo);
-  pathInput.addEventListener('keydown', e => { if (e.key === 'Enter') loadRepo(); });
+  pathInput.addEventListener('keydown', e => { if (e.key === 'Enter') pathInput.blur(); });
+  pathInput.addEventListener('blur', () => { if (pathInput.value.trim() !== state.basePath) loadRepo(); });
 
   document.getElementById('btn-diff-comment').addEventListener('click', showDiffCommentForm);
 
