@@ -360,7 +360,7 @@ select { min-width: 80px; cursor: pointer; text-overflow: ellipsis; overflow: hi
   user-select: none;
 }
 .line-num.old { background: rgba(255,255,255,0.02); }
-.line-num.new { background: rgba(0,0,0,0.15); }
+.line-num.new { background: rgba(0,0,0,0.25); }
 .line-num.old, .line-num.new {
   padding-left: 6px;
   cursor: pointer;
