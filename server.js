@@ -165,16 +165,32 @@ function parseDiff(rawDiff, generatedPatterns) {
   return files;
 }
 
+function resolveRef(ref, cwd) {
+  try {
+    git(['rev-parse', '--verify', ref], cwd);
+    return ref;
+  } catch {
+    try {
+      git(['rev-parse', '--verify', 'origin/' + ref], cwd);
+      return 'origin/' + ref;
+    } catch {
+      return ref;
+    }
+  }
+}
+
 app.get('/api/diff', (req, res) => {
   const { path: repoPath, source, target } = req.query;
   if (!repoPath || !source || !target) return res.status(400).json({ error: 'Missing params' });
   try {
-    const generatedPatterns = parseGitAttributes(repoPath, target);
+    const resolvedSource = resolveRef(source, repoPath);
+    const resolvedTarget = resolveRef(target, repoPath);
+    const generatedPatterns = parseGitAttributes(repoPath, resolvedTarget);
     let rawDiff;
     try {
-      rawDiff = git(['diff', '--no-color', '-U5', `${target}...${source}`], repoPath);
+      rawDiff = git(['diff', '--no-color', '-U5', `${resolvedTarget}...${resolvedSource}`], repoPath);
     } catch {
-      rawDiff = git(['diff', '--no-color', '-U5', target, source], repoPath);
+      rawDiff = git(['diff', '--no-color', '-U5', resolvedTarget, resolvedSource], repoPath);
     }
     const files = parseDiff(rawDiff, generatedPatterns);
     res.json({ files });
@@ -187,7 +203,8 @@ app.get('/api/file-content', (req, res) => {
   const { path: repoPath, branch, file } = req.query;
   if (!repoPath || !branch || !file) return res.status(400).json({ error: 'Missing params' });
   try {
-    const content = git(['show', `${branch}:${file}`], repoPath);
+    const resolvedBranch = resolveRef(branch, repoPath);
+    const content = git(['show', `${resolvedBranch}:${file}`], repoPath);
     const fileLines = content.split('\n');
     if (fileLines.length > 0 && fileLines[fileLines.length - 1] === '') fileLines.pop();
     res.json({ lines: fileLines, totalLines: fileLines.length });
