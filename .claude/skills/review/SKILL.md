@@ -38,7 +38,7 @@ If the user reports the link doesn't work, the Arbiter server may not be running
 
 > The Arbiter server starts automatically with each Claude session. If it's not running, start it manually:
 > ```bash
-> arbiter --port 7429 &
+> arbiter &
 > ```
 > If `arbiter` is not installed, install it globally: `npm install -g .` from the Arbiter repo directory.
 

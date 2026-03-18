@@ -8,13 +8,13 @@ A self-contained, browser-based git diff viewer with GitHub-style inline comment
 
 ```bash
 # From the arbiter directory (defaults to git root of CWD)
-node server.js --port 3000
+arbiter
 
 # Or specify a repo path explicitly
-node server.js --path /path/to/repo --port 3000
+arbiter --path /path/to/repo
 ```
 
-Opens at `http://localhost:3000` (auto-increments port if taken). When `--path` is omitted, defaults to `git rev-parse --show-toplevel` of the current directory.
+Opens at `http://localhost:7429` (auto-increments port if taken). When `--path` is omitted, defaults to `git rev-parse --show-toplevel` of the current directory.
 
 ## Tech Stack
 

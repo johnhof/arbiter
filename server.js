@@ -214,7 +214,7 @@ app.get('/api/file-content', (req, res) => {
   }
 });
 
-const preferredPort = parseInt(process.argv.find((a, i) => process.argv[i-1] === '--port') || '3000');
+const preferredPort = parseInt(process.argv.find((a, i) => process.argv[i-1] === '--port') || '7429');
 const cliPath = process.argv.find((a, i) => process.argv[i-1] === '--path') || '';
 const cliExportMode = process.argv.find((a, i) => process.argv[i-1] === '--export') || '';
 

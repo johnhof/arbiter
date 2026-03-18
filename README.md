@@ -14,17 +14,17 @@ This installs `arbiter` as a global command. You can verify with `arbiter --help
 ## Usage
 
 ```bash
-arbiter --port 3000
+arbiter
 ```
 
-Opens at `http://localhost:3000` (auto-increments port if taken). Defaults to the git root of the current working directory.
+Opens at `http://localhost:7429` (auto-increments if taken). Defaults to the git root of the current working directory.
 
 ### CLI Flags
 
 | Flag | Description | Default |
 |------|-------------|---------|
 | `--path /path/to/repo` | Repository to diff | git root of CWD |
-| `--port 3000` | Server port (auto-increments if taken) | `3000` |
+| `--port <number>` | Server port (auto-increments if taken) | `7429` |
 | `--export <mode>` | Default export button: `clipboard`, `file`, or `send` | `clipboard` |
 
 ### Agent Integration
