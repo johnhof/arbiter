@@ -34,16 +34,15 @@ URL-encode the path and branch names. Present the link to the user:
 
 ### 3. Poll for the accepted prompt
 
-After presenting the link, poll the Arbiter server for the accepted prompt. Use URL-encoded query params matching the path, source, and target from step 1:
+After presenting the link, poll the Arbiter server using a **single bash command** that shows live status updates. Replace the placeholder variables with URL-encoded values from step 1:
 
 ```bash
-curl -s "http://localhost:7429/api/prompts?path=<url-encoded-path>&source=<url-encoded-source>&target=<url-encoded-target>"
+BASE="http://localhost:7429/api/prompts?path=<url-encoded-path>&source=<url-encoded-source>&target=<url-encoded-target>"; while true; do RESP=$(curl -s -w "\n%{http_code}" "$BASE"); CODE=$(echo "$RESP" | tail -1); BODY=$(echo "$RESP" | sed '$d'); if [ "$CODE" = "200" ]; then READ=$(echo "$BODY" | grep -o '"read":[a-z]*' | cut -d: -f2); if [ "$READ" = "false" ]; then printf "\rChecking for prompt... Retrieved!\n"; echo "$BODY"; break; else printf "\rChecking for prompt... None (read=true)"; fi; else printf "\rChecking for prompt... None            "; fi; sleep 1; done
 ```
 
-- Poll every 5 seconds
-- A `404` means no prompt yet — keep polling
-- A `200` with `"read": false` means the reviewer has accepted — proceed
-- Mark the prompt as read immediately:
+- The loop prints `Checking for prompt... None` on each poll, overwriting the same line with `\r`
+- When a prompt with `"read": false` is found, it prints `Retrieved!` and outputs the response body
+- After retrieval, mark the prompt as read immediately:
   ```bash
   curl -s -X PATCH "http://localhost:7429/api/prompts?path=<url-encoded-path>&source=<url-encoded-source>&target=<url-encoded-target>" \
     -H "Content-Type: application/json" -d '{"read": true}'

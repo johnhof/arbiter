@@ -231,13 +231,18 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   document.getElementById('sidebar-toggle').addEventListener('click', () => {
     const sidebar = document.getElementById('sidebar');
-    sidebar.classList.toggle('collapsed');
     const mc = document.getElementById('main-content');
-    if (sidebar.classList.contains('collapsed')) {
-      mc.style.left = '40px';
+    const isNarrow = window.matchMedia('(max-width: 900px)').matches;
+    if (isNarrow) {
+      sidebar.classList.toggle('expanded-overlay');
     } else {
-      const w = getComputedStyle(document.documentElement).getPropertyValue('--sidebar-width').trim();
-      mc.style.left = w;
+      sidebar.classList.toggle('collapsed');
+      if (sidebar.classList.contains('collapsed')) {
+        mc.style.left = '40px';
+      } else {
+        const w = getComputedStyle(document.documentElement).getPropertyValue('--sidebar-width').trim();
+        mc.style.left = w;
+      }
     }
   });
 
@@ -797,10 +802,11 @@ function insertInlineCommentForm() {
   const endNew = parseInt(lastRow.dataset.newLine) || null;
 
   document.querySelectorAll('.comment-form-row.temp').forEach(el => el.remove());
+  document.querySelectorAll('.inline-comment-form-container.temp').forEach(el => el.remove());
 
   const formRow = createEl('tr', { className: 'comment-form-row temp' });
   const td = createEl('td', { colspan: '3' });
-  const formDiv = createEl('div', { className: 'comment-form' });
+  const formDiv = createEl('div', { className: 'comment-form inline-comment-form' });
   const textarea = createEl('textarea', { placeholder: 'Add your review comment...' });
   const actionsDiv = createEl('div', { className: 'comment-form-actions' });
 
@@ -830,6 +836,13 @@ function insertInlineCommentForm() {
   formRow.appendChild(td);
 
   lastRow.after(formRow);
+  // Set form width to match visible container
+  const outer = formRow.closest('.diff-table-outer');
+  if (outer) {
+    const w = (outer.clientWidth - 32) + 'px';
+    formDiv.style.width = w;
+    formDiv.style.maxWidth = w;
+  }
   textarea.focus();
 }
 
@@ -845,7 +858,7 @@ function addCommentFormShortcuts(textarea, saveBtn, cancelBtn, actionsDiv) {
       lastEscape = now;
     }
   });
-  const hint = createEl('span', { className: 'comment-hint', textContent: 'Shift+Enter to submit · Esc Esc to cancel' });
+  const hint = createEl('span', { className: 'comment-hint', textContent: '\u21E7\u23CE submit \u00B7 Esc Esc cancel' });
   actionsDiv.insertBefore(hint, actionsDiv.firstChild);
 }
 
@@ -853,13 +866,17 @@ function addCommentFormShortcuts(textarea, saveBtn, cancelBtn, actionsDiv) {
 function showFileCommentForm(fileIdx, filePath) {
   const area = document.getElementById('file-comments-' + fileIdx);
   if (area.querySelector('.comment-form')) return;
+  // Remove any existing overlay
+  document.querySelectorAll('.comment-form-overlay').forEach(el => el.remove());
 
   const formDiv = createEl('div', { className: 'comment-form pinned' });
   const textarea = createEl('textarea', { placeholder: 'Comment on this file...' });
   const actionsDiv = createEl('div', { className: 'comment-form-actions' });
 
+  const cleanup = () => { formDiv.remove(); if (overlay) overlay.remove(); };
+
   const cancelBtn = createEl('button', { className: 'btn btn-small btn-secondary', textContent: 'Cancel' });
-  cancelBtn.addEventListener('click', () => formDiv.remove());
+  cancelBtn.addEventListener('click', cleanup);
 
   const saveBtn = createEl('button', { className: 'btn btn-small btn-primary', textContent: 'Save' });
   saveBtn.addEventListener('click', () => {
@@ -868,9 +885,10 @@ function showFileCommentForm(fileIdx, filePath) {
     const fc = getFileComments(filePath);
     fc.file.push({ id: genId(), text, timestamp: Date.now() });
     saveComments();
-    formDiv.remove();
+    cleanup();
     renderFileCommentBlocks(area, filePath);
     renderFileTree();
+    updateCommentNav();
   });
 
   actionsDiv.appendChild(cancelBtn);
@@ -878,8 +896,28 @@ function showFileCommentForm(fileIdx, filePath) {
   formDiv.appendChild(textarea);
   formDiv.appendChild(actionsDiv);
   addCommentFormShortcuts(textarea, saveBtn, cancelBtn, actionsDiv);
-  area.appendChild(formDiv);
-  textarea.focus();
+
+  // Check if the file comment area is in view
+  const main = document.getElementById('main-content');
+  const areaRect = area.getBoundingClientRect();
+  const mainRect = main.getBoundingClientRect();
+  var overlay = null;
+
+  if (areaRect.top < mainRect.top || areaRect.top > mainRect.bottom) {
+    // Area is off-screen — show as fixed overlay dropdown
+    overlay = createEl('div', { className: 'comment-form-overlay' });
+    const label = createEl('div', {
+      textContent: state.files[fileIdx].path,
+      style: { fontSize: '12px', color: 'var(--text-muted)', marginBottom: '6px', fontFamily: 'var(--font-mono)' }
+    });
+    overlay.appendChild(label);
+    overlay.appendChild(formDiv);
+    document.body.appendChild(overlay);
+    textarea.focus({ preventScroll: true });
+  } else {
+    area.appendChild(formDiv);
+    textarea.focus({ preventScroll: true });
+  }
 }
 
 function renderFileCommentBlocks(container, filePath) {
@@ -927,13 +965,17 @@ function renderFileCommentBlocks(container, filePath) {
 function showDiffCommentForm() {
   const area = document.getElementById('diff-comment-area');
   if (area.querySelector('.comment-form')) return;
+  // Remove any existing overlay
+  document.querySelectorAll('.comment-form-overlay').forEach(el => el.remove());
 
   const formDiv = createEl('div', { className: 'comment-form pinned', style: { marginBottom: '16px' } });
   const textarea = createEl('textarea', { placeholder: 'Overall comment on this diff...' });
   const actionsDiv = createEl('div', { className: 'comment-form-actions' });
 
+  const cleanup = () => { formDiv.remove(); if (overlay) overlay.remove(); };
+
   const cancelBtn = createEl('button', { className: 'btn btn-small btn-secondary', textContent: 'Cancel' });
-  cancelBtn.addEventListener('click', () => formDiv.remove());
+  cancelBtn.addEventListener('click', cleanup);
 
   const saveBtn = createEl('button', { className: 'btn btn-small btn-primary', textContent: 'Save' });
   saveBtn.addEventListener('click', () => {
@@ -941,7 +983,7 @@ function showDiffCommentForm() {
     if (!text) return;
     state.comments.diff.push({ id: genId(), text, timestamp: Date.now() });
     saveComments();
-    formDiv.remove();
+    cleanup();
     renderDiffComments();
   });
 
@@ -950,8 +992,23 @@ function showDiffCommentForm() {
   formDiv.appendChild(textarea);
   formDiv.appendChild(actionsDiv);
   addCommentFormShortcuts(textarea, saveBtn, cancelBtn, actionsDiv);
-  area.appendChild(formDiv);
-  textarea.focus();
+
+  // Check if the comment area is in view
+  const main = document.getElementById('main-content');
+  const areaRect = area.getBoundingClientRect();
+  const mainRect = main.getBoundingClientRect();
+  var overlay = null;
+
+  if (areaRect.top < mainRect.top || areaRect.top > mainRect.bottom) {
+    // Area is off-screen — show as fixed overlay dropdown
+    overlay = createEl('div', { className: 'comment-form-overlay' });
+    overlay.appendChild(formDiv);
+    document.body.appendChild(overlay);
+    textarea.focus({ preventScroll: true });
+  } else {
+    area.appendChild(formDiv);
+    textarea.focus({ preventScroll: true });
+  }
 }
 
 function renderDiffComments() {
@@ -1061,6 +1118,7 @@ function editFileComment(filePath, commentId) {
       const area = document.getElementById('file-comments-' + fileIdx);
       renderFileCommentBlocks(area, filePath);
     }
+    updateCommentNav();
   });
   btns.appendChild(cancelBtn);
   btns.appendChild(saveBtn);
@@ -1436,4 +1494,24 @@ function jumpToComment(direction) {
 
 document.getElementById('comment-nav-up').addEventListener('click', () => jumpToComment(-1));
 document.getElementById('comment-nav-down').addEventListener('click', () => jumpToComment(1));
+
+// Comment nav menu (vertical dots)
+(function() {
+  const menuBtn = document.getElementById('comment-nav-menu-btn');
+  const menu = document.getElementById('comment-nav-menu');
+  menuBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    menu.classList.toggle('hidden');
+  });
+  document.addEventListener('click', () => menu.classList.add('hidden'));
+  document.getElementById('comment-nav-clear-all').addEventListener('click', () => {
+    state.comments = { diff: [], files: {} };
+    saveComments();
+    renderDiff();
+    renderDiffComments();
+    renderFileTree();
+    updateCommentNav();
+    menu.classList.add('hidden');
+  });
+})();
 
