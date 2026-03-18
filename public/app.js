@@ -662,11 +662,21 @@ function handleLineMouseDown(e) {
     return;
   }
 
-  // Toggle: clicking the same line again closes the form
-  if (state.selectionFileIdx === fileIdx && state.selectionStart &&
-      state.selectionStart.row === row && state.selectionEnd && state.selectionEnd.row === row) {
-    clearSelection();
-    return;
+  // Toggle: clicking any line in the current selection closes the form
+  if (state.selectionFileIdx === fileIdx && state.selectionStart && state.selectionEnd) {
+    const fileEl = document.getElementById('file-' + fileIdx);
+    if (fileEl) {
+      const rows = Array.from(fileEl.querySelectorAll('.diff-line'));
+      const startIdx = rows.indexOf(state.selectionStart.row);
+      const endIdx = rows.indexOf(state.selectionEnd.row);
+      const rowIdx = rows.indexOf(row);
+      const min = Math.min(startIdx, endIdx);
+      const max = Math.max(startIdx, endIdx);
+      if (rowIdx >= min && rowIdx <= max) {
+        clearSelection();
+        return;
+      }
+    }
   }
 
   clearSelection();
