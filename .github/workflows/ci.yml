@@ -108,7 +108,7 @@ jobs:
             playwright-report/
           retention-days: 7
 
-  release:
+  publish:
     needs: [test]
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
@@ -117,47 +117,35 @@ jobs:
         with:
           fetch-depth: 0
 
-      - uses: actions/setup-node@v5
-        with:
-          node-version: 22
-          registry-url: https://registry.npmjs.org
-
-      - name: Check if version needs release
+      - name: Check if version changed
         id: check
         run: |
           PKG_VERSION=$(jq -r '.version' package.json)
           TAG="v${PKG_VERSION}"
-          echo "version=$PKG_VERSION" >> "$GITHUB_OUTPUT"
-          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
           if git rev-parse "$TAG" >/dev/null 2>&1; then
-            echo "Tag $TAG already exists — skipping release"
+            echo "Tag $TAG already exists — nothing to publish"
             echo "skip=true" >> "$GITHUB_OUTPUT"
           else
-            echo "New version $TAG — will tag and publish"
+            echo "New version $TAG"
             echo "skip=false" >> "$GITHUB_OUTPUT"
+            echo "tag=$TAG" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Create tag
+      - uses: actions/setup-node@v5
+        if: steps.check.outputs.skip != 'true'
+        with:
+          node-version: 22
+          registry-url: https://registry.npmjs.org
+
+      - name: Tag and publish
         if: steps.check.outputs.skip != 'true'
         env:
           TAG: ${{ steps.check.outputs.tag }}
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git tag -a "$TAG" -m "Release $TAG"
           git push origin "$TAG"
-
-      - name: Publish to npm
-        if: steps.check.outputs.skip != 'true'
-        run: npm publish --access public
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-
-      - name: Summary
-        if: steps.check.outputs.skip != 'true'
-        env:
-          TAG: ${{ steps.check.outputs.tag }}
-        run: |
-          echo "### Release" >> "$GITHUB_STEP_SUMMARY"
-          echo "" >> "$GITHUB_STEP_SUMMARY"
-          echo "Published **$TAG** to npm" >> "$GITHUB_STEP_SUMMARY"
+          npm publish --access public
+          echo "### Published $TAG to npm" >> "$GITHUB_STEP_SUMMARY"
