@@ -424,6 +424,7 @@ select { min-width: 80px; cursor: pointer; text-overflow: ellipsis; overflow: hi
 .inline-comment-form {
   position: sticky;
   left: 16px;
+  max-width: var(--inline-form-width, 100%);
 }
 .comment-form-row .comment-form {
   max-height: calc(100vh - var(--header-height) - 40px);
