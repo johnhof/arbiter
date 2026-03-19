@@ -83,6 +83,39 @@ let me review the diff on feature-branch
 
 Claude generates an Arbiter link pre-loaded with the right repo and branches, then polls for your review. Open the link, leave comments, click **Accept Prompt**, and Claude picks them up automatically.
 
+### Auto-start the server
+
+To have the Arbiter server start automatically when Claude Code opens a session, add a `SessionStart` hook to your project's `.claude/settings.json`:
+
+```json
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "arbiter",
+            "async": true,
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+This runs `arbiter` in the background at session start. The server auto-detects the repo path and picks an available port (default 7429). Since `async` is true, it won't block Claude from starting.
+
+If you need to pass flags (e.g., `--export accept`), use the full command:
+
+```json
+"command": "arbiter --export accept"
+```
+
+Arbiter must be installed globally (`npm install -g .`) for the hook to find it.
+
 ## Testing
 
 ```bash
