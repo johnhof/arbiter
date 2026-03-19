@@ -28,9 +28,22 @@ jobs:
         run: npx playwright install --with-deps chromium
 
       - name: Run tests
-        run: npx playwright test --reporter=json 2>/dev/null | tee test-results.json
+        run: npx playwright test --reporter=json > test-results.json 2>/dev/null || true
         env:
           CI: true
+
+      - name: Check test results
+        run: |
+          if ! jq -e '.stats' test-results.json >/dev/null 2>&1; then
+            echo "Failed to parse test results"
+            exit 1
+          fi
+          jq '.stats' test-results.json
+          UNEXPECTED=$(jq '.stats.unexpected' test-results.json)
+          if [ "$UNEXPECTED" -gt 0 ]; then
+            echo "Tests failed: $UNEXPECTED unexpected"
+            exit 1
+          fi
 
       - name: Generate coverage report
         if: always()
