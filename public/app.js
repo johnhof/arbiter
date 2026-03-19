@@ -1096,6 +1096,7 @@ function editInlineComment(filePath, commentId) {
   });
   btns.appendChild(cancelBtn);
   btns.appendChild(saveBtn);
+  addCommentFormShortcuts(textarea, saveBtn, cancelBtn, btns);
   textEl.appendChild(btns);
 }
 
@@ -1138,6 +1139,7 @@ function editFileComment(filePath, commentId) {
   });
   btns.appendChild(cancelBtn);
   btns.appendChild(saveBtn);
+  addCommentFormShortcuts(textarea, saveBtn, cancelBtn, btns);
   textEl.appendChild(btns);
 }
 
@@ -1179,6 +1181,7 @@ function editDiffComment(commentId) {
   });
   btns.appendChild(cancelBtn);
   btns.appendChild(saveBtn);
+  addCommentFormShortcuts(textarea, saveBtn, cancelBtn, btns);
   textEl.appendChild(btns);
 }
 
