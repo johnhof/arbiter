@@ -108,6 +108,29 @@ let me review the diff on feature-branch
 
 Claude generates an Arbiter link pre-loaded with the right repo and branches, then polls for your review. Open the link, leave comments, click **Accept Prompt**, and Claude picks them up automatically. The connection indicator in the UI will show green when Claude is actively polling.
 
+## Testing
+
+Arbiter uses [Playwright](https://playwright.dev/) for end-to-end testing. Tests cover API endpoints, app loading, diff rendering, all three comment types, comment navigation, export modes, agent integration, and sidebar behavior.
+
+```bash
+# Run all tests
+npm test
+
+# Run with interactive UI mode
+npm run test:ui
+
+# Run a specific test file
+npx playwright test tests/api.spec.js
+
+# Run tests matching a name
+npx playwright test -g "inline comment"
+
+# Run with a visible browser
+npx playwright test --headed
+```
+
+Tests start their own server on port 7430 automatically — no manual setup needed. The test suite uses the Arbiter repo itself as the test repository, comparing the `add-readme` branch against `main`.
+
 ## API Reference
 
 | Endpoint | Method | Purpose |
