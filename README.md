@@ -1,6 +1,6 @@
 # Arbiter
 
-![Vibe Coded](https://github.com/johnhof/arbiter/blob/main/.github/badges/vibe-coded.svg?raw=true)
+![Vibe Coded](https://github.com/johnhof/arbiter/blob/main/vibe-coded.svg?raw=true)
 ![Tests](https://github.com/johnhof/arbiter/blob/main/.github/badges/tests.svg?raw=true)
 
 Browser-based git diff reviewer with inline commenting and real-time agent integration. Review branch diffs GitHub-style, leave comments on specific lines or files, then export all comments as a structured markdown prompt for an AI agent to apply the fixes.
