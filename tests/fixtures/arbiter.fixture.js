@@ -1,6 +1,7 @@
 const { test: base, expect } = require('@playwright/test');
+const path = require('path');
 
-const REPO_PATH = '/home/ubuntu/athena/.shared/arbiter';
+const REPO_PATH = path.resolve(__dirname, '../..');
 
 exports.test = base.extend({
   arbiterPage: async ({ page }, use) => {

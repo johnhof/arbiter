@@ -1,7 +1,8 @@
 const { test, expect } = require('@playwright/test');
+const path = require('path');
 
 const BASE = 'http://localhost:7430';
-const REPO_PATH = '/home/ubuntu/athena/.shared/arbiter';
+const REPO_PATH = path.resolve(__dirname, '..');
 
 test.describe('API Endpoints', () => {
   test('validate-path with valid repo', async ({ request }) => {

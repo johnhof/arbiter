@@ -326,7 +326,7 @@ async function loadDiff() {
   loadComments();
 
   const data = await api('/api/diff?path=' + encodeURIComponent(state.basePath) + '&source=' + encodeURIComponent(state.sourceBranch) + '&target=' + encodeURIComponent(state.targetBranch));
-  state.files = data.files;
+  state.files = data.files.sort((a, b) => a.path.localeCompare(b.path));
 
   document.getElementById('file-count').textContent = state.files.length;
   renderFileTree();

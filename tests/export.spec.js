@@ -69,7 +69,11 @@ test.describe('Export Modes', () => {
     await page.locator('#diff-comment-area .comment-form textarea').fill('Toast test');
     await page.locator('#diff-comment-area .comment-form .btn-primary').click();
     await page.locator('#btn-export').click();
-    // Should see the "Prompt accepted" toast
-    await expect(page.locator('text=Prompt accepted')).toBeVisible({ timeout: 5000 });
+    // Toast fades in — wait for any element containing the text
+    await page.waitForFunction(() => {
+      return Array.from(document.querySelectorAll('div')).some(
+        el => el.textContent.includes('Prompt accepted') && el.style.position === 'fixed'
+      );
+    }, { timeout: 5000 });
   });
 });

@@ -1,4 +1,7 @@
 const { defineConfig, devices } = require('@playwright/test');
+const path = require('path');
+
+const repoPath = path.resolve(__dirname);
 
 module.exports = defineConfig({
   testDir: './tests',
@@ -19,7 +22,7 @@ module.exports = defineConfig({
     },
   ],
   webServer: {
-    command: 'node server.js --path /home/ubuntu/athena/.shared/arbiter --port 7430 --export accept',
+    command: `node server.js --path "${repoPath}" --port 7430 --export accept`,
     url: 'http://localhost:7430',
     reuseExistingServer: !process.env.CI,
     timeout: 10000,
