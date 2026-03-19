@@ -88,6 +88,9 @@ jobs:
     needs: [test]
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
+    outputs:
+      new-version: ${{ steps.bump.outputs.new }}
+      skipped: ${{ steps.bump.outputs.skip }}
     steps:
       - uses: actions/checkout@v5
         with:
@@ -167,3 +170,25 @@ jobs:
           echo "| Previous | $PREV |" >> "$GITHUB_STEP_SUMMARY"
           echo "| New | $NEW |" >> "$GITHUB_STEP_SUMMARY"
           echo "| Bump | $BUMP |" >> "$GITHUB_STEP_SUMMARY"
+
+  publish:
+    needs: [version]
+    if: github.ref == 'refs/heads/main' && needs.version.outputs.skipped != 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          registry-url: https://registry.npmjs.org
+
+      - name: Set version from tag
+        env:
+          NEW_VERSION: ${{ needs.version.outputs.new-version }}
+        run: npm version "${NEW_VERSION#v}" --no-git-tag-version
+
+      - name: Publish to npm
+        run: npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

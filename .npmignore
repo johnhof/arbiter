@@ -1,0 +1,17 @@
+# Tests
+tests/
+test-results/
+playwright-report/
+playwright.config.js
+
+# CI/GitHub
+.github/
+.claude/
+
+# Images
+*.png
+*.svg
+
+# Dev files
+AGENTS.md
+.gitignore
