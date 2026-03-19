@@ -27,33 +27,15 @@ Opens at `http://localhost:7429` (auto-increments if taken). Defaults to the git
 | `--port <number>` | Server port (auto-increments if taken) | `7429` |
 | `--export <mode>` | Default export button: `clipboard`, `file`, or `accept` | `clipboard` |
 
-### Agent Integration
-
-Use `--export accept` to make "Accept Prompt" the default action. When the user clicks Accept, the prompt is stored on the server in memory. An agent can poll for it and mark it as read:
-
-```bash
-# Poll for an accepted prompt
-curl -s "http://localhost:7429/api/prompts?path=/path/to/repo&source=feature&target=main"
-# Mark as read after consuming
-curl -s -X PATCH "http://localhost:7429/api/prompts?path=/path/to/repo&source=feature&target=main" \
-  -H "Content-Type: application/json" -d '{"read": true}'
-```
-
-The UI shows a live connection indicator when in Accept mode — green when an agent is polling, red when not.
-
 ## Features
 
 - **Branch comparison** — select source and target branches from any local git repo
 - **Unified diff view** — syntax-highlighted, with expandable hidden context lines
 - **Three comment levels** — overall diff, per-file, and inline (line or range selection via click/shift-click/drag)
 - **Comment navigation** — fixed widget with prev/next jumping and Clear All
-- **Comment persistence** — saved to localStorage, survives page reloads
 - **Agent prompt export** — copy to clipboard, download as markdown, or accept for agent polling
 - **Agent connection status** — live indicator showing whether an agent is listening
-- **Collapsible UI** — file boxes, sidebar, and comments all collapse independently
-- **Generated file detection** — respects `.gitattributes` patterns
-- **Responsive layout** — adapts to narrow viewports
-- **Keyboard shortcuts** — `⇧⏎` to submit, `Esc Esc` to cancel
+- **Generated file detection** — respects `.gitattributes` patterns to collapse generated/binary files
 
 ## Claude Code Skill
 
@@ -75,10 +57,14 @@ Arbiter ships with a Claude Code skill at `.claude/skills/arbiter/` that automat
 ln -s <path-to-arbiter>/.claude/skills/arbiter .claude/skills/arbiter
 ```
 
-**Option 3: Copy** the skill into your project:
+**Option 3: Copy** the skill directory into your project. Create `.claude/skills/arbiter/SKILL.md` with the contents from the Arbiter repo:
 
-```bash
-cp -r <path-to-arbiter>/.claude/skills/arbiter .claude/skills/arbiter
+```
+your-project/
+└── .claude/
+    └── skills/
+        └── arbiter/
+            └── SKILL.md    # Copy from <path-to-arbiter>/.claude/skills/arbiter/SKILL.md
 ```
 
 Find your install path with `npm ls -g arbiter` or `which arbiter`.
