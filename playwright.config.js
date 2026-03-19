@@ -10,6 +10,8 @@ module.exports = defineConfig({
   retries: process.env.CI ? 1 : 0,
   workers: 1,
   reporter: process.env.CI ? 'github' : 'list',
+  globalSetup: './tests/global-setup.js',
+  globalTeardown: './tests/global-teardown.js',
   use: {
     baseURL: 'http://localhost:7430',
     trace: 'on-first-retry',

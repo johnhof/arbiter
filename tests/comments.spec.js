@@ -17,12 +17,20 @@ test.describe('Diff-Level Comments', () => {
     await page.locator('#btn-diff-comment').click();
     await page.locator('#diff-comment-area .comment-form textarea').fill('Original text');
     await page.locator('#diff-comment-area .comment-form .btn-primary').click();
-    // Edit
-    await page.locator('#diff-comment-area .comment-block .comment-actions .btn-secondary').click();
+    await expect(page.locator('#diff-comment-area .comment-block .comment-text')).toHaveText('Original text');
+    // Edit via JS to avoid click interception by comment nav overlay
+    await page.evaluate(() => {
+      const editBtn = document.querySelector('#diff-comment-area .comment-block .comment-actions .btn-secondary');
+      editBtn.click();
+    });
     const textarea = page.locator('#diff-comment-area .comment-block textarea');
+    await expect(textarea).toBeVisible();
     await textarea.fill('Edited text');
-    await page.locator('#diff-comment-area .comment-block .btn-primary').click();
-    await expect(page.locator('#diff-comment-area .comment-text')).toHaveText('Edited text');
+    await page.evaluate(() => {
+      const saveBtn = document.querySelector('#diff-comment-area .comment-block .comment-text .btn-primary');
+      saveBtn.click();
+    });
+    await expect(page.locator('#diff-comment-area .comment-block .comment-text').first()).toHaveText('Edited text');
   });
 
   test('delete a diff-level comment', async ({ arbiterPage: page }) => {

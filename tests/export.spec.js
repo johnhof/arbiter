@@ -1,4 +1,4 @@
-const { test, expect } = require('./fixtures/arbiter.fixture');
+const { test, expect, TEST_BRANCH } = require('./fixtures/arbiter.fixture');
 
 test.describe('Export Modes', () => {
   test('dropdown opens and closes', async ({ arbiterPage: page }) => {
@@ -60,7 +60,7 @@ test.describe('Export Modes', () => {
     ]);
     const body = request.postDataJSON();
     expect(body.markdown).toContain('Export test');
-    expect(body.source).toBe('add-readme');
+    expect(body.source).toBe(TEST_BRANCH);
     expect(body.target).toBe('main');
   });
 

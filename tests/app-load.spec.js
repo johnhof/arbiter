@@ -1,4 +1,4 @@
-const { test, expect, REPO_PATH } = require('./fixtures/arbiter.fixture');
+const { test, expect, REPO_PATH, TEST_BRANCH } = require('./fixtures/arbiter.fixture');
 
 test.describe('App Load', () => {
   test('page title is Arbiter', async ({ arbiterPage: page }) => {
@@ -21,8 +21,8 @@ test.describe('App Load', () => {
     await expect(page.locator('#target-branch')).toHaveValue('main');
   });
 
-  test('source defaults to add-readme', async ({ arbiterPage: page }) => {
-    await expect(page.locator('#source-branch')).toHaveValue('add-readme');
+  test('source defaults to test branch', async ({ arbiterPage: page }) => {
+    await expect(page.locator('#source-branch')).toHaveValue(TEST_BRANCH);
   });
 
   test('file count badge shows correct count', async ({ arbiterPage: page }) => {
