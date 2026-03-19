@@ -6,16 +6,15 @@
 
 Browser-based git diff reviewer with inline commenting and real-time agent integration. Review branch diffs GitHub-style, leave comments on specific lines or files, then export all comments as a structured markdown prompt for an AI agent to apply the fixes.
 
-![Arbiter Screenshot](.github/example.png)
+![Arbiter Screenshot](https://github.com/johnhof/arbiter/blob/main/.github/example.png?raw=true)
 
 ## Installation
 
 ```bash
-git clone git@github.com:johnhof/arbiter.git
-cd arbiter && npm install -g .
+npm install -g @johnhof/arbiter
 ```
 
-This installs `arbiter` as a global command. You can verify with `arbiter --help` or `which arbiter`.
+This installs `arbiter` as a global command. Verify with `which arbiter`.
 
 ## Usage
 
