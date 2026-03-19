@@ -34,7 +34,12 @@ jobs:
 
       - name: Generate coverage report
         if: always()
-        run: npx c8 report --temp-directory=./coverage/tmp --reporter=json-summary --report-dir=./coverage 2>/dev/null || true
+        run: |
+          if [ -d "./coverage/tmp" ]; then
+            npx c8 report --temp-directory=./coverage/tmp --reporter=json-summary --report-dir=./coverage --src=.
+          else
+            echo "No coverage data found in ./coverage/tmp"
+          fi
 
       - name: Generate test summary
         if: always()
