@@ -838,12 +838,22 @@ function insertInlineCommentForm() {
   formRow.appendChild(td);
 
   lastRow.after(formRow);
-  // Set form width to match visible container
+  // Keep form width synced to the visible container
   const outer = formRow.closest('.diff-table-outer');
   if (outer) {
-    const w = (outer.clientWidth - 32) + 'px';
-    formDiv.style.width = w;
-    formDiv.style.maxWidth = w;
+    const syncWidth = () => {
+      const w = (outer.clientWidth - 32) + 'px';
+      formDiv.style.width = w;
+      formDiv.style.maxWidth = w;
+    };
+    syncWidth();
+    const ro = new ResizeObserver(syncWidth);
+    ro.observe(outer);
+    // Clean up observer when form is removed
+    const mo = new MutationObserver(() => {
+      if (!formRow.isConnected) { ro.disconnect(); mo.disconnect(); }
+    });
+    mo.observe(formRow.parentNode || document.body, { childList: true });
   }
   textarea.focus();
 }
@@ -971,7 +981,7 @@ function showDiffCommentForm() {
   document.querySelectorAll('.comment-form-overlay').forEach(el => el.remove());
 
   const formDiv = createEl('div', { className: 'comment-form pinned', style: { marginBottom: '16px' } });
-  const textarea = createEl('textarea', { placeholder: 'Overall comment on this diff...' });
+  const textarea = createEl('textarea', { placeholder: 'Top-level comment on this diff...' });
   const actionsDiv = createEl('div', { className: 'comment-form-actions' });
 
   const cleanup = () => { formDiv.remove(); if (overlay) overlay.remove(); };
@@ -1027,7 +1037,7 @@ function renderDiffComments() {
     const meta = createEl('div', { className: 'comment-meta' });
     const toggle = createEl('span', { className: 'comment-collapse-toggle', textContent: '\u25BC' });
     meta.appendChild(toggle);
-    meta.appendChild(createEl('span', { textContent: 'Overall comment' }));
+    meta.appendChild(createEl('span', { textContent: 'Top-level comment' }));
     meta.appendChild(createEl('span', { textContent: new Date(c.timestamp).toLocaleString() }));
     block.appendChild(meta);
 
@@ -1063,8 +1073,10 @@ function editInlineComment(filePath, commentId) {
   if (!comment) return;
   const block = document.querySelector('[data-comment-id="' + commentId + '"]');
   const textEl = block.querySelector('.comment-text');
+  const actionsEl = block.querySelector('.comment-actions');
   const oldText = comment.text;
 
+  if (actionsEl) actionsEl.style.display = 'none';
   textEl.textContent = '';
   const textarea = createEl('textarea', { style: { width: '100%', minHeight: '60px', background: 'var(--bg)', border: '1px solid var(--border)', color: 'var(--text)', borderRadius: '4px', padding: '8px', fontFamily: 'var(--font-sans)', fontSize: '13px' } });
   textarea.value = oldText;
@@ -1072,7 +1084,7 @@ function editInlineComment(filePath, commentId) {
 
   const btns = createEl('div', { style: { display: 'flex', gap: '6px', marginTop: '6px', justifyContent: 'flex-end' } });
   const cancelBtn = createEl('button', { className: 'btn btn-small btn-secondary', textContent: 'Cancel' });
-  cancelBtn.addEventListener('click', () => { textEl.textContent = oldText; });
+  cancelBtn.addEventListener('click', () => { textEl.textContent = oldText; if (actionsEl) actionsEl.style.display = ''; });
   const saveBtn = createEl('button', { className: 'btn btn-small btn-primary', textContent: 'Save' });
   saveBtn.addEventListener('click', () => {
     const newText = textarea.value.trim();
@@ -1101,8 +1113,10 @@ function editFileComment(filePath, commentId) {
   if (!comment) return;
   const block = document.querySelector('[data-comment-id="' + commentId + '"]');
   const textEl = block.querySelector('.comment-text');
+  const actionsEl = block.querySelector('.comment-actions');
   const oldText = comment.text;
 
+  if (actionsEl) actionsEl.style.display = 'none';
   textEl.textContent = '';
   const textarea = createEl('textarea', { style: { width: '100%', minHeight: '60px', background: 'var(--bg)', border: '1px solid var(--border)', color: 'var(--text)', borderRadius: '4px', padding: '8px', fontFamily: 'var(--font-sans)', fontSize: '13px' } });
   textarea.value = oldText;
@@ -1110,7 +1124,7 @@ function editFileComment(filePath, commentId) {
 
   const btns = createEl('div', { style: { display: 'flex', gap: '6px', marginTop: '6px', justifyContent: 'flex-end' } });
   const cancelBtn = createEl('button', { className: 'btn btn-small btn-secondary', textContent: 'Cancel' });
-  cancelBtn.addEventListener('click', () => { textEl.textContent = oldText; });
+  cancelBtn.addEventListener('click', () => { textEl.textContent = oldText; if (actionsEl) actionsEl.style.display = ''; });
   const saveBtn = createEl('button', { className: 'btn btn-small btn-primary', textContent: 'Save' });
   saveBtn.addEventListener('click', () => {
     comment.text = textarea.value.trim();
@@ -1145,8 +1159,10 @@ function editDiffComment(commentId) {
   if (!comment) return;
   const block = document.querySelector('[data-comment-id="' + commentId + '"]');
   const textEl = block.querySelector('.comment-text');
+  const actionsEl = block.querySelector('.comment-actions');
   const oldText = comment.text;
 
+  if (actionsEl) actionsEl.style.display = 'none';
   textEl.textContent = '';
   const textarea = createEl('textarea', { style: { width: '100%', minHeight: '60px', background: 'var(--bg)', border: '1px solid var(--border)', color: 'var(--text)', borderRadius: '4px', padding: '8px', fontFamily: 'var(--font-sans)', fontSize: '13px' } });
   textarea.value = oldText;
@@ -1154,7 +1170,7 @@ function editDiffComment(commentId) {
 
   const btns = createEl('div', { style: { display: 'flex', gap: '6px', marginTop: '6px', justifyContent: 'flex-end' } });
   const cancelBtn = createEl('button', { className: 'btn btn-small btn-secondary', textContent: 'Cancel' });
-  cancelBtn.addEventListener('click', () => { textEl.textContent = oldText; });
+  cancelBtn.addEventListener('click', () => { textEl.textContent = oldText; if (actionsEl) actionsEl.style.display = ''; });
   const saveBtn = createEl('button', { className: 'btn btn-small btn-primary', textContent: 'Save' });
   saveBtn.addEventListener('click', () => {
     comment.text = textarea.value.trim();
@@ -1299,7 +1315,7 @@ function exportComments(mode) {
   lines.push('---\n');
 
   if (state.comments.diff && state.comments.diff.length > 0) {
-    lines.push('## Overall Comments\n');
+    lines.push('## Top-Level Comments\n');
     for (const c of state.comments.diff) {
       lines.push('> ' + c.text + '\n');
     }

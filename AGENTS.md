@@ -271,6 +271,16 @@ main#main-content
 
 11. **Agent connection awareness.** The `readonly=true` query parameter on `GET /api/prompts` prevents the UI's own status-check polling from being counted as an agent connection, keeping the connection indicator accurate.
 
+## Documentation Requirements
+
+When changing functionality, always update the corresponding documentation and tests:
+
+- **README.md** — update if user-facing features, CLI flags, or setup instructions change
+- **AGENTS.md** — update if architecture, APIs, state shape, key functions, gotchas, or design decisions change
+- **Tests** (`tests/`) — add or update Playwright tests to cover new or modified behavior
+
+Do not merge functional changes without corresponding documentation and test updates.
+
 ## Common Modification Patterns
 
 **Adding a new API endpoint:**
