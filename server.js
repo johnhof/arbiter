@@ -232,6 +232,7 @@ app.get('/api/initial-path', (req, res) => {
 });
 
 const prompts = new Map();
+const promptAccess = new Map();
 
 function promptKey(p, t, s) { return `${p}:${t}:${s}`; }
 
@@ -243,11 +244,21 @@ app.post('/api/prompts', (req, res) => {
 });
 
 app.get('/api/prompts', (req, res) => {
-  const { path: repoPath, source, target } = req.query;
+  const { path: repoPath, source, target, readonly } = req.query;
   if (!repoPath || !source || !target) return res.status(400).json({ error: 'Missing params' });
-  const prompt = prompts.get(promptKey(repoPath, target, source));
+  const key = promptKey(repoPath, target, source);
+  if (readonly !== 'true') promptAccess.set(key, Date.now());
+  const prompt = prompts.get(key);
   if (!prompt) return res.status(404).json({ error: 'No prompt found' });
   res.json(prompt);
+});
+
+app.get('/api/prompts/status', (req, res) => {
+  const { path: repoPath, source, target } = req.query;
+  if (!repoPath || !source || !target) return res.status(400).json({ error: 'Missing params' });
+  const key = promptKey(repoPath, target, source);
+  const lastAccess = promptAccess.get(key) || 0;
+  res.json({ lastAccess });
 });
 
 app.patch('/api/prompts', (req, res) => {

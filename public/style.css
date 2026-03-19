@@ -91,6 +91,8 @@ select { min-width: 80px; cursor: pointer; text-overflow: ellipsis; overflow: hi
 .btn-small { padding: 2px 8px; font-size: 12px; }
 .btn-danger { background: #da3633; color: #fff; }
 .btn-danger:hover { background: #f85149; }
+.btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.btn:disabled:hover { background: inherit; }
 
 /* Split button */
 .split-btn { position: relative; display: flex; }
@@ -604,6 +606,65 @@ select { min-width: 80px; cursor: pointer; text-overflow: ellipsis; overflow: hi
   letter-spacing: 2px;
 }
 
+/* === Agent Connection Indicator === */
+.agent-status {
+  position: fixed;
+  bottom: 12px;
+  right: 12px;
+  z-index: 90;
+  background: var(--comment-bg);
+  border-radius: 6px;
+  padding: 4px 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+  cursor: help;
+  display: flex;
+  align-items: center;
+}
+.agent-status svg { pointer-events: none; }
+.agent-status.hidden { display: none; }
+.agent-status .agent-tooltip {
+  display: none;
+  position: absolute;
+  bottom: calc(100% + 8px);
+  right: 0;
+  background: var(--surface-raised);
+  color: var(--text);
+  font-size: 12px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+  white-space: nowrap;
+  pointer-events: none;
+}
+.agent-status:hover .agent-tooltip { display: block; }
+
+/* Accept button warning icon */
+.split-btn { position: relative; }
+.accept-warning {
+  position: absolute;
+  bottom: -4px;
+  right: -4px;
+  font-size: 12px;
+  line-height: 1;
+  z-index: 201;
+  cursor: help;
+}
+.accept-warning-tooltip {
+  display: none;
+  position: absolute;
+  bottom: calc(100% + 8px);
+  right: 0;
+  background: var(--surface-raised);
+  color: var(--text);
+  font-size: 12px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+  white-space: nowrap;
+  pointer-events: none;
+}
+.accept-warning:hover .accept-warning-tooltip { display: block; }
+
 /* === Syntax highlighting overrides === */
 .diff-table code { background: transparent !important; padding: 0 !important; }
 .diff-table .hljs { background: transparent !important; padding: 0 !important; }
@@ -624,7 +685,7 @@ select { min-width: 80px; cursor: pointer; text-overflow: ellipsis; overflow: hi
   #sidebar.expanded-overlay #file-tree { display: block; }
   #sidebar.expanded-overlay .sidebar-header span:not(.sidebar-toggle) { display: inline; }
   #sidebar.expanded-overlay .sidebar-toggle { transform: rotate(0deg); }
-  #main-content { left: 40px; }
+  #main-content { left: 40px !important; }
 }
 
 @media (max-width: 700px) {

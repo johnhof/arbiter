@@ -157,6 +157,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const pathInput = document.getElementById('base-path');
   const targetSelect = document.getElementById('target-branch');
   const sourceSelect = document.getElementById('source-branch');
+  updateExportButton();
 
   try {
     // URL query params take highest priority, then CLI path, then saved session
@@ -198,25 +199,25 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   document.getElementById('btn-diff-comment').addEventListener('click', showDiffCommentForm);
 
-  let exportMode = 'clipboard';
+  state.exportMode = 'clipboard';
   const exportLabel = document.getElementById('export-mode-label');
   const exportDropdown = document.getElementById('export-dropdown');
 
   if (state._initExportMode && ['clipboard', 'file', 'accept'].includes(state._initExportMode)) {
-    exportMode = state._initExportMode;
-    exportLabel.textContent = exportMode === 'clipboard' ? 'Copy' : exportMode === 'file' ? 'Save' : 'Accept';
+    state.exportMode = state._initExportMode;
+    exportLabel.textContent = state.exportMode === 'clipboard' ? 'Copy' : state.exportMode === 'file' ? 'Save' : 'Accept';
   }
   delete state._initExportMode;
 
-  document.getElementById('btn-export').addEventListener('click', () => exportComments(exportMode));
+  document.getElementById('btn-export').addEventListener('click', () => exportComments(state.exportMode));
   document.getElementById('btn-export-toggle').addEventListener('click', (e) => {
     e.stopPropagation();
     exportDropdown.classList.toggle('hidden');
   });
   document.querySelectorAll('.split-btn-option').forEach(btn => {
     btn.addEventListener('click', () => {
-      exportMode = btn.dataset.mode;
-      exportLabel.textContent = exportMode === 'clipboard' ? 'Copy' : exportMode === 'file' ? 'Save' : 'Accept';
+      state.exportMode = btn.dataset.mode;
+      exportLabel.textContent = state.exportMode === 'clipboard' ? 'Copy' : state.exportMode === 'file' ? 'Save' : 'Accept';
       exportDropdown.classList.add('hidden');
     });
   });
@@ -438,6 +439,7 @@ function renderDiff() {
 
   if (state.files.length === 0) {
     container.appendChild(createEl('div', { className: 'empty-state', textContent: 'No changes between these branches.' }));
+    updateExportButton();
     return;
   }
 
@@ -1285,13 +1287,15 @@ function exportComments(mode) {
   lines.push('Below are review comments left by the reviewer. **Do not start making changes yet.** Follow this process:\n');
   lines.push('1. **Read all comments first** before making any changes.');
   lines.push('2. **Identify duplicates and overarching themes** \u2014 where multiple comments point to the same underlying issue or could be solved by a single refactor, group them and solve them with one unified change.');
-  lines.push('3. **Build a plan** and present it to the reviewer before executing. The plan must:');
+  lines.push('3. **Check if any comment has already been addressed** by other changes in the diff. If so, note it in the plan and skip it.');
+  lines.push('4. **Push back when appropriate.** If a comment is unnecessary, incorrect, or would degrade code quality, explain your reasoning to the reviewer rather than blindly implementing it. You are a collaborator, not a pushover.');
+  lines.push('5. **Build a plan** and present it to the reviewer before executing. The plan must:');
   lines.push('   - List every comment (quoted) with its file and line location');
   lines.push('   - For each comment, describe your proposed solution concisely');
   lines.push('   - Where multiple comments are addressed by a single change, group them and explain the unified approach');
   lines.push('   - Flag any comments that are ambiguous, conflicting, or where you see a better alternative \u2014 explain your reasoning');
-  lines.push('4. **Wait for approval.** The reviewer may modify the plan, reject specific items, or ask for a different approach. Do not proceed until they confirm.');
-  lines.push('5. **Execute the approved plan**, then verify no comment was missed and that fixes don\'t conflict with each other.\n');
+  lines.push('6. **Wait for approval.** The reviewer may modify the plan, reject specific items, or ask for a different approach. Do not proceed until they confirm.');
+  lines.push('7. **Execute the approved plan**, then verify no comment was missed and that fixes don\'t conflict with each other.\n');
   lines.push('---\n');
 
   if (state.comments.diff && state.comments.diff.length > 0) {
@@ -1359,8 +1363,12 @@ function exportComments(mode) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ path: state.basePath, source: state.sourceBranch, target: state.targetBranch, markdown: output }),
     }).then(r => {
-      if (r.ok) showToast('Prompt accepted — waiting for agent');
-      else showToast('Failed to accept prompt', 'error');
+      if (r.ok) {
+        showToast('Prompt accepted — waiting for agent');
+        pollForRead();
+      } else {
+        showToast('Failed to accept prompt', 'error');
+      }
     }).catch(() => showToast('Failed to accept prompt', 'error'));
   } else {
     const blob = new Blob([output], { type: 'text/markdown' });
@@ -1400,21 +1408,52 @@ function getCommentContext(file, comment, contextSize) {
   return result;
 }
 
+function pollForRead() {
+  const url = '/api/prompts?readonly=true&path=' + encodeURIComponent(state.basePath) +
+    '&source=' + encodeURIComponent(state.sourceBranch) +
+    '&target=' + encodeURIComponent(state.targetBranch);
+  const start = Date.now();
+  const interval = setInterval(() => {
+    fetch(url).then(r => r.ok ? r.json() : null).then(data => {
+      if (data && data.read === true) {
+        clearInterval(interval);
+        showToast('Comments picked up by agent');
+      } else if (Date.now() - start > 10000) {
+        clearInterval(interval);
+        showToast('Comments not being picked up — is the agent listening?', 'warning');
+      }
+    }).catch(() => {
+      if (Date.now() - start > 10000) {
+        clearInterval(interval);
+        showToast('Comments not being picked up — is the agent listening?', 'warning');
+      }
+    });
+  }, 1000);
+}
+
 function showToast(message, type) {
-  const bg = type === 'error' ? '#da3633' : '#238636';
+  const bg = type === 'error' ? '#da3633' : type === 'warning' ? '#d29922' : '#238636';
   const toast = createEl('div', {
-    textContent: message,
     style: {
       position: 'fixed', bottom: '24px', right: '24px',
       background: bg, color: '#fff',
       padding: '8px 16px', borderRadius: '6px',
       fontSize: '13px', zIndex: '999',
-      opacity: '0', transition: 'opacity 0.3s'
+      opacity: '0', transition: 'opacity 0.3s',
+      display: 'flex', alignItems: 'center', gap: '10px'
     }
   });
+  toast.appendChild(document.createTextNode(message));
+  const close = createEl('span', {
+    textContent: '\u00D7',
+    style: { cursor: 'pointer', fontSize: '16px', fontWeight: '700', opacity: '0.8', lineHeight: '1' }
+  });
+  close.addEventListener('click', () => { toast.style.opacity = '0'; setTimeout(() => toast.remove(), 300); });
+  toast.appendChild(close);
   document.body.appendChild(toast);
   requestAnimationFrame(() => { toast.style.opacity = '1'; });
-  setTimeout(() => { toast.style.opacity = '0'; setTimeout(() => toast.remove(), 300); }, 2000);
+  const duration = (type === 'error' || type === 'warning') ? 8000 : 4000;
+  setTimeout(() => { toast.style.opacity = '0'; setTimeout(() => toast.remove(), 300); }, duration);
 }
 
 // === Comment Navigation ===
@@ -1423,6 +1462,7 @@ let _commentNavIdx = -1;
 function updateCommentNav() {
   const total = countAllComments();
   const nav = document.getElementById('comment-nav');
+  updateExportButton();
   if (total === 0) {
     nav.classList.add('hidden');
     return;
@@ -1474,6 +1514,10 @@ function countAllComments() {
   return n;
 }
 
+function updateExportButton() {
+  // no-op: button is always fully active
+}
+
 function getAllCommentElements() {
   return Array.from(document.querySelectorAll('.comment-block'));
 }
@@ -1495,7 +1539,7 @@ function jumpToComment(direction) {
 document.getElementById('comment-nav-up').addEventListener('click', () => jumpToComment(-1));
 document.getElementById('comment-nav-down').addEventListener('click', () => jumpToComment(1));
 
-// Comment nav menu (vertical dots)
+// Comment nav menu
 (function() {
   const menuBtn = document.getElementById('comment-nav-menu-btn');
   const menu = document.getElementById('comment-nav-menu');
@@ -1513,5 +1557,69 @@ document.getElementById('comment-nav-down').addEventListener('click', () => jump
     updateCommentNav();
     menu.classList.add('hidden');
   });
+})();
+
+// Agent connection indicator
+(function() {
+  const dotLeft = document.getElementById('agent-dot-left');
+  const dotRight = document.getElementById('agent-dot-right');
+  const line = document.getElementById('agent-line');
+  const statusEl = document.getElementById('agent-status');
+  let warningEl = null;
+
+  function updateAgentWarning(connected) {
+    const splitBtn = document.querySelector('.split-btn');
+    if (!splitBtn) return;
+    const showWarning = !connected && state.exportMode === 'accept';
+    if (showWarning) {
+      if (!warningEl) {
+        warningEl = createEl('span', { className: 'accept-warning' });
+        warningEl.appendChild(document.createTextNode('\u26A0\uFE0F'));
+        const tip = createEl('span', { className: 'accept-warning-tooltip', textContent: 'No client is listening for changes' });
+        warningEl.appendChild(tip);
+        splitBtn.appendChild(warningEl);
+      }
+    } else if (warningEl) {
+      warningEl.remove();
+      warningEl = null;
+    }
+  }
+
+  let lastConnected = false;
+
+  function updateAgentVisibility() {
+    if (state.exportMode === 'accept') {
+      statusEl.classList.remove('hidden');
+    } else {
+      statusEl.classList.add('hidden');
+      // Also remove the warning when not in accept mode
+      updateAgentWarning(true);
+    }
+  }
+
+  function pollStatus() {
+    updateAgentVisibility();
+    if (!state.basePath || !state.sourceBranch || !state.targetBranch) return;
+    if (state.exportMode !== 'accept') return;
+    const url = '/api/prompts/status?path=' + encodeURIComponent(state.basePath) +
+      '&source=' + encodeURIComponent(state.sourceBranch) +
+      '&target=' + encodeURIComponent(state.targetBranch);
+    fetch(url).then(r => r.ok ? r.json() : null).then(data => {
+      if (!data) return;
+      const ago = Date.now() - data.lastAccess;
+      lastConnected = ago < 5000;
+      const color = lastConnected ? '#3fb950' : '#da3633';
+      const tip = lastConnected ? 'A client is listening for changes' : 'No client is listening for changes';
+      dotLeft.setAttribute('fill', color);
+      dotRight.setAttribute('fill', color);
+      line.setAttribute('stroke', color);
+      const tooltipEl = document.getElementById('agent-tooltip');
+      if (tooltipEl) tooltipEl.textContent = tip;
+      updateAgentWarning(lastConnected);
+    }).catch(() => {});
+  }
+
+  setInterval(pollStatus, 1000);
+  updateAgentVisibility();
 })();
 
