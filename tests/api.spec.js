@@ -3,6 +3,7 @@ const path = require('path');
 
 const BASE = 'http://localhost:7430';
 const REPO_PATH = path.resolve(__dirname, '..');
+const TEST_BRANCH = 'test-fixture-branch';
 
 test.describe('API Endpoints', () => {
   test('validate-path with valid repo', async ({ request }) => {
@@ -17,15 +18,15 @@ test.describe('API Endpoints', () => {
     expect(data.valid).toBe(false);
   });
 
-  test('branches returns array with main and add-readme', async ({ request }) => {
+  test('branches returns array with main and test branch', async ({ request }) => {
     const res = await request.get(`${BASE}/api/branches?path=${encodeURIComponent(REPO_PATH)}`);
     const data = await res.json();
     expect(data.branches).toContain('main');
-    expect(data.branches).toContain('add-readme');
+    expect(data.branches).toContain(TEST_BRANCH);
   });
 
   test('diff returns files', async ({ request }) => {
-    const res = await request.get(`${BASE}/api/diff?path=${encodeURIComponent(REPO_PATH)}&source=add-readme&target=main`);
+    const res = await request.get(`${BASE}/api/diff?path=${encodeURIComponent(REPO_PATH)}&source=${TEST_BRANCH}&target=main`);
     const data = await res.json();
     expect(data.files.length).toBeGreaterThan(0);
   });

@@ -1,5 +1,7 @@
 # Arbiter
 
+![Tests](https://raw.githubusercontent.com/johnhof/arbiter/main/.github/badges/tests.svg)
+
 Browser-based git diff reviewer with inline commenting and real-time agent integration. Review branch diffs GitHub-style, leave comments on specific lines or files, then export all comments as a structured markdown prompt for an AI agent to apply the fixes.
 
 ## Installation
