@@ -137,15 +137,17 @@ jobs:
           node-version: 22
           registry-url: https://registry.npmjs.org
 
-      - name: Tag and publish
+      - name: Tag, release, and publish
         if: steps.check.outputs.skip != 'true'
         env:
           TAG: ${{ steps.check.outputs.tag }}
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git tag -a "$TAG" -m "Release $TAG"
           git push origin "$TAG"
+          gh release create "$TAG" --title "$TAG" --generate-notes
           npm publish --access public
           echo "### Published $TAG to npm" >> "$GITHUB_STEP_SUMMARY"
