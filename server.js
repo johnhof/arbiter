@@ -214,7 +214,7 @@ app.get('/api/file-content', (req, res) => {
   }
 });
 
-const preferredPort = parseInt(process.argv.find((a, i) => process.argv[i-1] === '--port') || '3000');
+const preferredPort = parseInt(process.argv.find((a, i) => process.argv[i-1] === '--port') || '7429');
 const cliPath = process.argv.find((a, i) => process.argv[i-1] === '--path') || '';
 const cliExportMode = process.argv.find((a, i) => process.argv[i-1] === '--export') || '';
 
@@ -231,12 +231,44 @@ app.get('/api/initial-path', (req, res) => {
   res.json({ path: initialPath, exportMode: cliExportMode || '' });
 });
 
-app.post('/api/submit', (req, res) => {
-  const { markdown } = req.body;
-  if (!markdown) return res.status(400).json({ error: 'No markdown provided' });
+const prompts = new Map();
+const promptAccess = new Map();
+
+function promptKey(p, t, s) { return `${p}:${t}:${s}`; }
+
+app.post('/api/prompts', (req, res) => {
+  const { path: repoPath, source, target, markdown } = req.body;
+  if (!repoPath || !source || !target || !markdown) return res.status(400).json({ error: 'Missing params' });
+  prompts.set(promptKey(repoPath, target, source), { markdown, read: false });
   res.json({ ok: true });
-  process.stdout.write(markdown);
-  setTimeout(() => process.exit(0), 100);
+});
+
+app.get('/api/prompts', (req, res) => {
+  const { path: repoPath, source, target, readonly } = req.query;
+  if (!repoPath || !source || !target) return res.status(400).json({ error: 'Missing params' });
+  const key = promptKey(repoPath, target, source);
+  if (readonly !== 'true') promptAccess.set(key, Date.now());
+  const prompt = prompts.get(key);
+  if (!prompt) return res.status(404).json({ error: 'No prompt found' });
+  res.json(prompt);
+});
+
+app.get('/api/prompts/status', (req, res) => {
+  const { path: repoPath, source, target } = req.query;
+  if (!repoPath || !source || !target) return res.status(400).json({ error: 'Missing params' });
+  const key = promptKey(repoPath, target, source);
+  const lastAccess = promptAccess.get(key) || 0;
+  res.json({ lastAccess });
+});
+
+app.patch('/api/prompts', (req, res) => {
+  const { path: repoPath, source, target } = req.query;
+  if (!repoPath || !source || !target) return res.status(400).json({ error: 'Missing params' });
+  const key = promptKey(repoPath, target, source);
+  const prompt = prompts.get(key);
+  if (!prompt) return res.status(404).json({ error: 'No prompt found' });
+  if (req.body.read !== undefined) prompt.read = req.body.read;
+  res.json({ ok: true });
 });
 
 function startServer(port) {

@@ -157,6 +157,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const pathInput = document.getElementById('base-path');
   const targetSelect = document.getElementById('target-branch');
   const sourceSelect = document.getElementById('source-branch');
+  updateExportButton();
 
   try {
     // URL query params take highest priority, then CLI path, then saved session
@@ -164,11 +165,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     const urlPath = urlParams.get('path') || '';
     const urlTarget = urlParams.get('target') || '';
     const urlSource = urlParams.get('source') || '';
+    const urlExport = urlParams.get('export') || '';
 
     const saved = JSON.parse(localStorage.getItem('arbiter:session') || '{}');
     const init = await api('/api/initial-path');
     const initialPath = urlPath || init.path || saved.path;
-    state._initExportMode = init.exportMode || '';
+    state._initExportMode = urlExport || init.exportMode || '';
     if (initialPath) {
       pathInput.value = initialPath;
       autoSizeInput(pathInput);
@@ -197,25 +199,25 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   document.getElementById('btn-diff-comment').addEventListener('click', showDiffCommentForm);
 
-  let exportMode = 'clipboard';
+  state.exportMode = 'clipboard';
   const exportLabel = document.getElementById('export-mode-label');
   const exportDropdown = document.getElementById('export-dropdown');
 
-  if (state._initExportMode && ['clipboard', 'file', 'send'].includes(state._initExportMode)) {
-    exportMode = state._initExportMode;
-    exportLabel.textContent = exportMode === 'clipboard' ? 'Copy' : exportMode === 'file' ? 'Save' : 'Send';
+  if (state._initExportMode && ['clipboard', 'file', 'accept'].includes(state._initExportMode)) {
+    state.exportMode = state._initExportMode;
+    exportLabel.textContent = state.exportMode === 'clipboard' ? 'Copy' : state.exportMode === 'file' ? 'Save' : 'Accept';
   }
   delete state._initExportMode;
 
-  document.getElementById('btn-export').addEventListener('click', () => exportComments(exportMode));
+  document.getElementById('btn-export').addEventListener('click', () => exportComments(state.exportMode));
   document.getElementById('btn-export-toggle').addEventListener('click', (e) => {
     e.stopPropagation();
     exportDropdown.classList.toggle('hidden');
   });
   document.querySelectorAll('.split-btn-option').forEach(btn => {
     btn.addEventListener('click', () => {
-      exportMode = btn.dataset.mode;
-      exportLabel.textContent = exportMode === 'clipboard' ? 'Copy' : exportMode === 'file' ? 'Save' : 'Send';
+      state.exportMode = btn.dataset.mode;
+      exportLabel.textContent = state.exportMode === 'clipboard' ? 'Copy' : state.exportMode === 'file' ? 'Save' : 'Accept';
       exportDropdown.classList.add('hidden');
     });
   });
@@ -230,13 +232,18 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   document.getElementById('sidebar-toggle').addEventListener('click', () => {
     const sidebar = document.getElementById('sidebar');
-    sidebar.classList.toggle('collapsed');
     const mc = document.getElementById('main-content');
-    if (sidebar.classList.contains('collapsed')) {
-      mc.style.left = '40px';
+    const isNarrow = window.matchMedia('(max-width: 900px)').matches;
+    if (isNarrow) {
+      sidebar.classList.toggle('expanded-overlay');
     } else {
-      const w = getComputedStyle(document.documentElement).getPropertyValue('--sidebar-width').trim();
-      mc.style.left = w;
+      sidebar.classList.toggle('collapsed');
+      if (sidebar.classList.contains('collapsed')) {
+        mc.style.left = '40px';
+      } else {
+        const w = getComputedStyle(document.documentElement).getPropertyValue('--sidebar-width').trim();
+        mc.style.left = w;
+      }
     }
   });
 
@@ -432,6 +439,7 @@ function renderDiff() {
 
   if (state.files.length === 0) {
     container.appendChild(createEl('div', { className: 'empty-state', textContent: 'No changes between these branches.' }));
+    updateExportButton();
     return;
   }
 
@@ -796,10 +804,11 @@ function insertInlineCommentForm() {
   const endNew = parseInt(lastRow.dataset.newLine) || null;
 
   document.querySelectorAll('.comment-form-row.temp').forEach(el => el.remove());
+  document.querySelectorAll('.inline-comment-form-container.temp').forEach(el => el.remove());
 
   const formRow = createEl('tr', { className: 'comment-form-row temp' });
   const td = createEl('td', { colspan: '3' });
-  const formDiv = createEl('div', { className: 'comment-form' });
+  const formDiv = createEl('div', { className: 'comment-form inline-comment-form' });
   const textarea = createEl('textarea', { placeholder: 'Add your review comment...' });
   const actionsDiv = createEl('div', { className: 'comment-form-actions' });
 
@@ -824,24 +833,52 @@ function insertInlineCommentForm() {
   actionsDiv.appendChild(saveBtn);
   formDiv.appendChild(textarea);
   formDiv.appendChild(actionsDiv);
+  addCommentFormShortcuts(textarea, saveBtn, cancelBtn, actionsDiv);
   td.appendChild(formDiv);
   formRow.appendChild(td);
 
   lastRow.after(formRow);
+  // Set form width to match visible container
+  const outer = formRow.closest('.diff-table-outer');
+  if (outer) {
+    const w = (outer.clientWidth - 32) + 'px';
+    formDiv.style.width = w;
+    formDiv.style.maxWidth = w;
+  }
   textarea.focus();
+}
+
+function addCommentFormShortcuts(textarea, saveBtn, cancelBtn, actionsDiv) {
+  let lastEscape = 0;
+  textarea.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && e.shiftKey) {
+      e.preventDefault();
+      saveBtn.click();
+    } else if (e.key === 'Escape') {
+      const now = Date.now();
+      if (now - lastEscape < 500) { cancelBtn.click(); }
+      lastEscape = now;
+    }
+  });
+  const hint = createEl('span', { className: 'comment-hint', textContent: '\u21E7\u23CE submit \u00B7 Esc Esc cancel' });
+  actionsDiv.insertBefore(hint, actionsDiv.firstChild);
 }
 
 // === File-Level Comments ===
 function showFileCommentForm(fileIdx, filePath) {
   const area = document.getElementById('file-comments-' + fileIdx);
   if (area.querySelector('.comment-form')) return;
+  // Remove any existing overlay
+  document.querySelectorAll('.comment-form-overlay').forEach(el => el.remove());
 
-  const formDiv = createEl('div', { className: 'comment-form' });
+  const formDiv = createEl('div', { className: 'comment-form pinned' });
   const textarea = createEl('textarea', { placeholder: 'Comment on this file...' });
   const actionsDiv = createEl('div', { className: 'comment-form-actions' });
 
+  const cleanup = () => { formDiv.remove(); if (overlay) overlay.remove(); };
+
   const cancelBtn = createEl('button', { className: 'btn btn-small btn-secondary', textContent: 'Cancel' });
-  cancelBtn.addEventListener('click', () => formDiv.remove());
+  cancelBtn.addEventListener('click', cleanup);
 
   const saveBtn = createEl('button', { className: 'btn btn-small btn-primary', textContent: 'Save' });
   saveBtn.addEventListener('click', () => {
@@ -850,17 +887,39 @@ function showFileCommentForm(fileIdx, filePath) {
     const fc = getFileComments(filePath);
     fc.file.push({ id: genId(), text, timestamp: Date.now() });
     saveComments();
-    formDiv.remove();
+    cleanup();
     renderFileCommentBlocks(area, filePath);
     renderFileTree();
+    updateCommentNav();
   });
 
   actionsDiv.appendChild(cancelBtn);
   actionsDiv.appendChild(saveBtn);
   formDiv.appendChild(textarea);
   formDiv.appendChild(actionsDiv);
-  area.appendChild(formDiv);
-  textarea.focus();
+  addCommentFormShortcuts(textarea, saveBtn, cancelBtn, actionsDiv);
+
+  // Check if the file comment area is in view
+  const main = document.getElementById('main-content');
+  const areaRect = area.getBoundingClientRect();
+  const mainRect = main.getBoundingClientRect();
+  var overlay = null;
+
+  if (areaRect.top < mainRect.top || areaRect.top > mainRect.bottom) {
+    // Area is off-screen — show as fixed overlay dropdown
+    overlay = createEl('div', { className: 'comment-form-overlay' });
+    const label = createEl('div', {
+      textContent: state.files[fileIdx].path,
+      style: { fontSize: '12px', color: 'var(--text-muted)', marginBottom: '6px', fontFamily: 'var(--font-mono)' }
+    });
+    overlay.appendChild(label);
+    overlay.appendChild(formDiv);
+    document.body.appendChild(overlay);
+    textarea.focus({ preventScroll: true });
+  } else {
+    area.appendChild(formDiv);
+    textarea.focus({ preventScroll: true });
+  }
 }
 
 function renderFileCommentBlocks(container, filePath) {
@@ -908,13 +967,17 @@ function renderFileCommentBlocks(container, filePath) {
 function showDiffCommentForm() {
   const area = document.getElementById('diff-comment-area');
   if (area.querySelector('.comment-form')) return;
+  // Remove any existing overlay
+  document.querySelectorAll('.comment-form-overlay').forEach(el => el.remove());
 
-  const formDiv = createEl('div', { className: 'comment-form', style: { marginBottom: '16px' } });
+  const formDiv = createEl('div', { className: 'comment-form pinned', style: { marginBottom: '16px' } });
   const textarea = createEl('textarea', { placeholder: 'Overall comment on this diff...' });
   const actionsDiv = createEl('div', { className: 'comment-form-actions' });
 
+  const cleanup = () => { formDiv.remove(); if (overlay) overlay.remove(); };
+
   const cancelBtn = createEl('button', { className: 'btn btn-small btn-secondary', textContent: 'Cancel' });
-  cancelBtn.addEventListener('click', () => formDiv.remove());
+  cancelBtn.addEventListener('click', cleanup);
 
   const saveBtn = createEl('button', { className: 'btn btn-small btn-primary', textContent: 'Save' });
   saveBtn.addEventListener('click', () => {
@@ -922,7 +985,7 @@ function showDiffCommentForm() {
     if (!text) return;
     state.comments.diff.push({ id: genId(), text, timestamp: Date.now() });
     saveComments();
-    formDiv.remove();
+    cleanup();
     renderDiffComments();
   });
 
@@ -930,8 +993,24 @@ function showDiffCommentForm() {
   actionsDiv.appendChild(saveBtn);
   formDiv.appendChild(textarea);
   formDiv.appendChild(actionsDiv);
-  area.appendChild(formDiv);
-  textarea.focus();
+  addCommentFormShortcuts(textarea, saveBtn, cancelBtn, actionsDiv);
+
+  // Check if the comment area is in view
+  const main = document.getElementById('main-content');
+  const areaRect = area.getBoundingClientRect();
+  const mainRect = main.getBoundingClientRect();
+  var overlay = null;
+
+  if (areaRect.top < mainRect.top || areaRect.top > mainRect.bottom) {
+    // Area is off-screen — show as fixed overlay dropdown
+    overlay = createEl('div', { className: 'comment-form-overlay' });
+    overlay.appendChild(formDiv);
+    document.body.appendChild(overlay);
+    textarea.focus({ preventScroll: true });
+  } else {
+    area.appendChild(formDiv);
+    textarea.focus({ preventScroll: true });
+  }
 }
 
 function renderDiffComments() {
@@ -1041,6 +1120,7 @@ function editFileComment(filePath, commentId) {
       const area = document.getElementById('file-comments-' + fileIdx);
       renderFileCommentBlocks(area, filePath);
     }
+    updateCommentNav();
   });
   btns.appendChild(cancelBtn);
   btns.appendChild(saveBtn);
@@ -1207,13 +1287,15 @@ function exportComments(mode) {
   lines.push('Below are review comments left by the reviewer. **Do not start making changes yet.** Follow this process:\n');
   lines.push('1. **Read all comments first** before making any changes.');
   lines.push('2. **Identify duplicates and overarching themes** \u2014 where multiple comments point to the same underlying issue or could be solved by a single refactor, group them and solve them with one unified change.');
-  lines.push('3. **Build a plan** and present it to the reviewer before executing. The plan must:');
+  lines.push('3. **Check if any comment has already been addressed** by other changes in the diff. If so, note it in the plan and skip it.');
+  lines.push('4. **Push back when appropriate.** If a comment is unnecessary, incorrect, or would degrade code quality, explain your reasoning to the reviewer rather than blindly implementing it. You are a collaborator, not a pushover.');
+  lines.push('5. **Build a plan** and present it to the reviewer before executing. The plan must:');
   lines.push('   - List every comment (quoted) with its file and line location');
   lines.push('   - For each comment, describe your proposed solution concisely');
   lines.push('   - Where multiple comments are addressed by a single change, group them and explain the unified approach');
   lines.push('   - Flag any comments that are ambiguous, conflicting, or where you see a better alternative \u2014 explain your reasoning');
-  lines.push('4. **Wait for approval.** The reviewer may modify the plan, reject specific items, or ask for a different approach. Do not proceed until they confirm.');
-  lines.push('5. **Execute the approved plan**, then verify no comment was missed and that fixes don\'t conflict with each other.\n');
+  lines.push('6. **Wait for approval.** The reviewer may modify the plan, reject specific items, or ask for a different approach. Do not proceed until they confirm.');
+  lines.push('7. **Execute the approved plan**, then verify no comment was missed and that fixes don\'t conflict with each other.\n');
   lines.push('---\n');
 
   if (state.comments.diff && state.comments.diff.length > 0) {
@@ -1275,15 +1357,19 @@ function exportComments(mode) {
       document.body.removeChild(textarea);
       showToast('Comments copied to clipboard');
     });
-  } else if (mode === 'send') {
-    fetch('/api/submit', {
+  } else if (mode === 'accept') {
+    fetch('/api/prompts', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ markdown: output }),
+      body: JSON.stringify({ path: state.basePath, source: state.sourceBranch, target: state.targetBranch, markdown: output }),
     }).then(r => {
-      if (r.ok) showToast('Comments sent — server exiting');
-      else showToast('Failed to send comments');
-    }).catch(() => showToast('Failed to send comments'));
+      if (r.ok) {
+        showToast('Prompt accepted — waiting for agent');
+        pollForRead();
+      } else {
+        showToast('Failed to accept prompt', 'error');
+      }
+    }).catch(() => showToast('Failed to accept prompt', 'error'));
   } else {
     const blob = new Blob([output], { type: 'text/markdown' });
     const url = URL.createObjectURL(blob);
@@ -1322,20 +1408,52 @@ function getCommentContext(file, comment, contextSize) {
   return result;
 }
 
-function showToast(message) {
+function pollForRead() {
+  const url = '/api/prompts?readonly=true&path=' + encodeURIComponent(state.basePath) +
+    '&source=' + encodeURIComponent(state.sourceBranch) +
+    '&target=' + encodeURIComponent(state.targetBranch);
+  const start = Date.now();
+  const interval = setInterval(() => {
+    fetch(url).then(r => r.ok ? r.json() : null).then(data => {
+      if (data && data.read === true) {
+        clearInterval(interval);
+        showToast('Comments picked up by agent');
+      } else if (Date.now() - start > 10000) {
+        clearInterval(interval);
+        showToast('Comments not being picked up — is the agent listening?', 'warning');
+      }
+    }).catch(() => {
+      if (Date.now() - start > 10000) {
+        clearInterval(interval);
+        showToast('Comments not being picked up — is the agent listening?', 'warning');
+      }
+    });
+  }, 1000);
+}
+
+function showToast(message, type) {
+  const bg = type === 'error' ? '#da3633' : type === 'warning' ? '#d29922' : '#238636';
   const toast = createEl('div', {
-    textContent: message,
     style: {
       position: 'fixed', bottom: '24px', right: '24px',
-      background: '#238636', color: '#fff',
+      background: bg, color: '#fff',
       padding: '8px 16px', borderRadius: '6px',
       fontSize: '13px', zIndex: '999',
-      opacity: '0', transition: 'opacity 0.3s'
+      opacity: '0', transition: 'opacity 0.3s',
+      display: 'flex', alignItems: 'center', gap: '10px'
     }
   });
+  toast.appendChild(document.createTextNode(message));
+  const close = createEl('span', {
+    textContent: '\u00D7',
+    style: { cursor: 'pointer', fontSize: '16px', fontWeight: '700', opacity: '0.8', lineHeight: '1' }
+  });
+  close.addEventListener('click', () => { toast.style.opacity = '0'; setTimeout(() => toast.remove(), 300); });
+  toast.appendChild(close);
   document.body.appendChild(toast);
   requestAnimationFrame(() => { toast.style.opacity = '1'; });
-  setTimeout(() => { toast.style.opacity = '0'; setTimeout(() => toast.remove(), 300); }, 2000);
+  const duration = (type === 'error' || type === 'warning') ? 8000 : 4000;
+  setTimeout(() => { toast.style.opacity = '0'; setTimeout(() => toast.remove(), 300); }, duration);
 }
 
 // === Comment Navigation ===
@@ -1344,6 +1462,7 @@ let _commentNavIdx = -1;
 function updateCommentNav() {
   const total = countAllComments();
   const nav = document.getElementById('comment-nav');
+  updateExportButton();
   if (total === 0) {
     nav.classList.add('hidden');
     return;
@@ -1395,6 +1514,10 @@ function countAllComments() {
   return n;
 }
 
+function updateExportButton() {
+  // no-op: button is always fully active
+}
+
 function getAllCommentElements() {
   return Array.from(document.querySelectorAll('.comment-block'));
 }
@@ -1415,4 +1538,88 @@ function jumpToComment(direction) {
 
 document.getElementById('comment-nav-up').addEventListener('click', () => jumpToComment(-1));
 document.getElementById('comment-nav-down').addEventListener('click', () => jumpToComment(1));
+
+// Comment nav menu
+(function() {
+  const menuBtn = document.getElementById('comment-nav-menu-btn');
+  const menu = document.getElementById('comment-nav-menu');
+  menuBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    menu.classList.toggle('hidden');
+  });
+  document.addEventListener('click', () => menu.classList.add('hidden'));
+  document.getElementById('comment-nav-clear-all').addEventListener('click', () => {
+    state.comments = { diff: [], files: {} };
+    saveComments();
+    renderDiff();
+    renderDiffComments();
+    renderFileTree();
+    updateCommentNav();
+    menu.classList.add('hidden');
+  });
+})();
+
+// Agent connection indicator
+(function() {
+  const dotLeft = document.getElementById('agent-dot-left');
+  const dotRight = document.getElementById('agent-dot-right');
+  const line = document.getElementById('agent-line');
+  const statusEl = document.getElementById('agent-status');
+  let warningEl = null;
+
+  function updateAgentWarning(connected) {
+    const splitBtn = document.querySelector('.split-btn');
+    if (!splitBtn) return;
+    const showWarning = !connected && state.exportMode === 'accept';
+    if (showWarning) {
+      if (!warningEl) {
+        warningEl = createEl('span', { className: 'accept-warning' });
+        warningEl.appendChild(document.createTextNode('\u26A0\uFE0F'));
+        const tip = createEl('span', { className: 'accept-warning-tooltip', textContent: 'No client is listening for changes' });
+        warningEl.appendChild(tip);
+        splitBtn.appendChild(warningEl);
+      }
+    } else if (warningEl) {
+      warningEl.remove();
+      warningEl = null;
+    }
+  }
+
+  let lastConnected = false;
+
+  function updateAgentVisibility() {
+    if (state.exportMode === 'accept') {
+      statusEl.classList.remove('hidden');
+    } else {
+      statusEl.classList.add('hidden');
+      // Also remove the warning when not in accept mode
+      updateAgentWarning(true);
+    }
+  }
+
+  function pollStatus() {
+    updateAgentVisibility();
+    if (!state.basePath || !state.sourceBranch || !state.targetBranch) return;
+    if (state.exportMode !== 'accept') return;
+    const url = '/api/prompts/status?path=' + encodeURIComponent(state.basePath) +
+      '&source=' + encodeURIComponent(state.sourceBranch) +
+      '&target=' + encodeURIComponent(state.targetBranch);
+    fetch(url).then(r => r.ok ? r.json() : null).then(data => {
+      if (!data) return;
+      const ago = Date.now() - data.lastAccess;
+      lastConnected = ago < 5000;
+      const color = lastConnected ? '#3fb950' : '#da3633';
+      const tip = lastConnected ? 'A client is listening for changes' : 'No client is listening for changes';
+      dotLeft.setAttribute('fill', color);
+      dotRight.setAttribute('fill', color);
+      line.setAttribute('stroke', color);
+      const tooltipEl = document.getElementById('agent-tooltip');
+      if (tooltipEl) tooltipEl.textContent = tip;
+      updateAgentWarning(lastConnected);
+    }).catch(() => {});
+  }
+
+  setInterval(pollStatus, 1000);
+  updateAgentVisibility();
+})();
 

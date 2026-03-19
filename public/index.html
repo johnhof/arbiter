@@ -36,7 +36,7 @@
         <div id="export-dropdown" class="split-btn-dropdown hidden">
           <button class="split-btn-option" data-mode="clipboard">Copy</button>
           <button class="split-btn-option" data-mode="file">Save</button>
-          <button class="split-btn-option" data-mode="send">Send</button>
+          <button class="split-btn-option" data-mode="accept">Accept</button>
         </div>
       </div>
     </div>
@@ -63,8 +63,23 @@
 
   <div id="comment-nav" class="comment-nav hidden">
     <button id="comment-nav-up" class="comment-nav-btn" title="Previous comment">&#x25B2;</button>
-    <span id="comment-nav-count" class="comment-nav-count">0</span>
+    <button id="comment-nav-menu-btn" class="comment-nav-middle-btn" title="More options">
+      <span id="comment-nav-count" class="comment-nav-count">0</span>
+      <span class="comment-nav-dots">&#x22EF;</span>
+    </button>
+    <div id="comment-nav-menu" class="comment-nav-menu hidden">
+      <button id="comment-nav-clear-all" class="comment-nav-menu-item danger">Clear All</button>
+    </div>
     <button id="comment-nav-down" class="comment-nav-btn" title="Next comment">&#x25BC;</button>
+  </div>
+
+  <div id="agent-status" class="agent-status">
+    <svg width="36" height="16" viewBox="0 0 36 16">
+      <circle id="agent-dot-left" cx="4" cy="8" r="3.5" fill="#da3633"/>
+      <line id="agent-line" x1="8" y1="8" x2="28" y2="8" stroke="#da3633" stroke-width="2"/>
+      <circle id="agent-dot-right" cx="32" cy="8" r="3.5" fill="#da3633"/>
+    </svg>
+    <span id="agent-tooltip" class="agent-tooltip">No client is listening for changes</span>
   </div>
 
 <script src="app.js"></script>
