@@ -28,5 +28,9 @@ module.exports = defineConfig({
     url: 'http://localhost:7430',
     reuseExistingServer: !process.env.CI,
     timeout: 10000,
+    env: {
+      ...process.env,
+      ...(process.env.CI ? { NODE_V8_COVERAGE: './coverage/tmp' } : {}),
+    },
   },
 });

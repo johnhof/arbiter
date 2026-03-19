@@ -45,6 +45,10 @@ jobs:
             exit 1
           fi
 
+      - name: Generate coverage report
+        if: always()
+        run: npx c8 report --temp-directory=./coverage/tmp --reporter=json-summary --report-dir=./coverage 2>/dev/null || true
+
       - name: Generate test summary
         if: always()
         run: |
@@ -52,15 +56,16 @@ jobs:
           FAILED=$(jq '.stats.unexpected' test-results.json 2>/dev/null || echo 0)
           TOTAL=$((PASSED + FAILED))
           if [ "$TOTAL" -gt 0 ]; then
-            PERCENT=$(( PASSED * 100 / TOTAL ))
+            TEST_PERCENT=$(( PASSED * 100 / TOTAL ))
           else
-            PERCENT=0
+            TEST_PERCENT=0
           fi
+          COV_PERCENT=$(jq '.total.lines.pct // 0 | floor' coverage/coverage-summary.json 2>/dev/null || echo 0)
           echo "### Test Results" >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
-          echo "| Passed | Failed | Total | Rate |" >> "$GITHUB_STEP_SUMMARY"
-          echo "|--------|--------|-------|------|" >> "$GITHUB_STEP_SUMMARY"
-          echo "| $PASSED | $FAILED | $TOTAL | ${PERCENT}% |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Passed | Failed | Total | Rate | Coverage |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|--------|--------|-------|------|----------|" >> "$GITHUB_STEP_SUMMARY"
+          echo "| $PASSED | $FAILED | $TOTAL | ${TEST_PERCENT}% | ${COV_PERCENT}% |" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Update test badge
         if: github.ref == 'refs/heads/main' && always()
@@ -69,21 +74,27 @@ jobs:
           FAILED=$(jq '.stats.unexpected' test-results.json 2>/dev/null || echo 0)
           TOTAL=$((PASSED + FAILED))
           if [ "$TOTAL" -gt 0 ]; then
-            PERCENT=$(( PASSED * 100 / TOTAL ))
+            TEST_PERCENT=$(( PASSED * 100 / TOTAL ))
           else
-            PERCENT=0
+            TEST_PERCENT=0
           fi
-          if [ "$PERCENT" -ge 90 ]; then COLOR="brightgreen"
-          elif [ "$PERCENT" -ge 70 ]; then COLOR="yellow"
-          else COLOR="red"
+          if [ "$TEST_PERCENT" -ge 90 ]; then TEST_COLOR="brightgreen"
+          elif [ "$TEST_PERCENT" -ge 70 ]; then TEST_COLOR="yellow"
+          else TEST_COLOR="red"
+          fi
+          COV_PERCENT=$(jq '.total.lines.pct // 0 | floor' coverage/coverage-summary.json 2>/dev/null || echo 0)
+          if [ "$COV_PERCENT" -ge 80 ]; then COV_COLOR="brightgreen"
+          elif [ "$COV_PERCENT" -ge 60 ]; then COV_COLOR="yellow"
+          else COV_COLOR="red"
           fi
           mkdir -p .github/badges
-          curl -s "https://img.shields.io/badge/tests-${PERCENT}%25_passing_(${PASSED}/${TOTAL})-${COLOR}" > .github/badges/tests.svg
+          curl -s "https://img.shields.io/badge/tests-${TEST_PERCENT}%25_passing_(${PASSED}/${TOTAL})-${TEST_COLOR}" > .github/badges/tests.svg
+          curl -s "https://img.shields.io/badge/coverage-${COV_PERCENT}%25-${COV_COLOR}" > .github/badges/coverage.svg
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add .github/badges/tests.svg
+          git add .github/badges/tests.svg .github/badges/coverage.svg
           if ! git diff --cached --quiet; then
-            git commit -m "ci: update test badge [skip ci]"
+            git commit -m "ci: update test badges [skip ci]"
             git push
           fi
 
