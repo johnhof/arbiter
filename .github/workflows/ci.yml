@@ -108,111 +108,44 @@ jobs:
             playwright-report/
           retention-days: 7
 
-  version:
+  publish:
     needs: [test]
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
-    outputs:
-      new-version: ${{ steps.bump.outputs.new }}
-      skipped: ${{ steps.bump.outputs.skip }}
     steps:
       - uses: actions/checkout@v5
         with:
           fetch-depth: 0
 
-      - name: Determine version bump
-        id: bump
+      - name: Check if version changed
+        id: check
         run: |
-          LATEST_TAG=$(git tag -l 'v*' --sort=-v:refname | head -1)
-          if [ -z "$LATEST_TAG" ]; then
-            LATEST_TAG="v0.0.0"
-          fi
-          echo "latest=$LATEST_TAG" >> "$GITHUB_OUTPUT"
-
-          VERSION="${LATEST_TAG#v}"
-          MAJOR=$(echo "$VERSION" | cut -d. -f1)
-          MINOR=$(echo "$VERSION" | cut -d. -f2)
-          PATCH=$(echo "$VERSION" | cut -d. -f3)
-
-          if [ "$LATEST_TAG" = "v0.0.0" ]; then
-            COMMITS=$(git log --oneline --format="%s")
-          else
-            COMMITS=$(git log "${LATEST_TAG}..HEAD" --oneline --format="%s")
-          fi
-
-          if [ -z "$COMMITS" ]; then
-            echo "No new commits since $LATEST_TAG"
+          PKG_VERSION=$(jq -r '.version' package.json)
+          TAG="v${PKG_VERSION}"
+          if git rev-parse "$TAG" >/dev/null 2>&1; then
+            echo "Tag $TAG already exists — nothing to publish"
             echo "skip=true" >> "$GITHUB_OUTPUT"
-            exit 0
+          else
+            echo "New version $TAG"
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+            echo "tag=$TAG" >> "$GITHUB_OUTPUT"
           fi
-
-          # feat!: or BREAKING CHANGE -> major
-          # feat: -> minor
-          # fix:, chore:, docs:, etc -> patch
-          BUMP="patch"
-          if echo "$COMMITS" | grep -qiE "^(feat|feature)(\(.+\))?!:"; then
-            BUMP="major"
-          elif echo "$COMMITS" | grep -qiE "BREAKING CHANGE"; then
-            BUMP="major"
-          elif echo "$COMMITS" | grep -qiE "^(feat|feature)(\(.+\))?:"; then
-            BUMP="minor"
-          fi
-
-          case "$BUMP" in
-            major) MAJOR=$((MAJOR + 1)); MINOR=0; PATCH=0 ;;
-            minor) MINOR=$((MINOR + 1)); PATCH=0 ;;
-            patch) PATCH=$((PATCH + 1)) ;;
-          esac
-
-          NEW_VERSION="v${MAJOR}.${MINOR}.${PATCH}"
-          echo "new=$NEW_VERSION" >> "$GITHUB_OUTPUT"
-          echo "bump=$BUMP" >> "$GITHUB_OUTPUT"
-          echo "skip=false" >> "$GITHUB_OUTPUT"
-          echo "Bumping $BUMP: $LATEST_TAG -> $NEW_VERSION"
-
-      - name: Create tag
-        if: steps.bump.outputs.skip != 'true'
-        env:
-          NEW_TAG: ${{ steps.bump.outputs.new }}
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git tag -a "$NEW_TAG" -m "Release $NEW_TAG"
-          git push origin "$NEW_TAG"
-
-      - name: Summary
-        if: steps.bump.outputs.skip != 'true'
-        env:
-          PREV: ${{ steps.bump.outputs.latest }}
-          NEW: ${{ steps.bump.outputs.new }}
-          BUMP: ${{ steps.bump.outputs.bump }}
-        run: |
-          echo "### Version Bump" >> "$GITHUB_STEP_SUMMARY"
-          echo "" >> "$GITHUB_STEP_SUMMARY"
-          echo "| Field | Value |" >> "$GITHUB_STEP_SUMMARY"
-          echo "|-------|-------|" >> "$GITHUB_STEP_SUMMARY"
-          echo "| Previous | $PREV |" >> "$GITHUB_STEP_SUMMARY"
-          echo "| New | $NEW |" >> "$GITHUB_STEP_SUMMARY"
-          echo "| Bump | $BUMP |" >> "$GITHUB_STEP_SUMMARY"
-
-  publish:
-    needs: [version]
-    if: github.ref == 'refs/heads/main' && needs.version.outputs.skipped != 'true'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v5
 
       - uses: actions/setup-node@v5
+        if: steps.check.outputs.skip != 'true'
         with:
           node-version: 22
           registry-url: https://registry.npmjs.org
 
-      - name: Set version from tag
+      - name: Tag and publish
+        if: steps.check.outputs.skip != 'true'
         env:
-          NEW_VERSION: ${{ needs.version.outputs.new-version }}
-        run: npm version "${NEW_VERSION#v}" --no-git-tag-version
-
-      - name: Publish to npm
-        run: npm publish --access public
-        env:
+          TAG: ${{ steps.check.outputs.tag }}
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag -a "$TAG" -m "Release $TAG"
+          git push origin "$TAG"
+          npm publish --access public
+          echo "### Published $TAG to npm" >> "$GITHUB_STEP_SUMMARY"
