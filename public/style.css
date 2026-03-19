@@ -50,7 +50,7 @@ html, body {
   flex-wrap: wrap;
 }
 .header-left { display: flex; align-items: center; flex-shrink: 0; }
-.logo { font-weight: 700; font-size: 15px; color: var(--text); white-space: nowrap; }
+.logo { font-weight: 700; font-size: 15px; color: var(--text); white-space: nowrap; letter-spacing: 2px; }
 .header-center { display: flex; align-items: center; gap: 12px; flex: 1; min-width: 0; justify-content: center; flex-wrap: wrap; }
 .header-right { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
 .control-group { display: flex; align-items: center; gap: 6px; white-space: nowrap; min-width: 0; flex-shrink: 1; }
