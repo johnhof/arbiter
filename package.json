@@ -1,5 +1,5 @@
 {
-  "name": "arbiter",
+  "name": "@johnhof/arbiter",
   "version": "1.0.0",
   "description": "Browser-based git diff review UI with inline commenting and agent prompt export",
   "main": "server.js",
