@@ -802,6 +802,29 @@ function highlightSelection() {
   }
 }
 
+function highlightCommentedLines(fileIdx, startOld, startNew, endOld, endNew) {
+  const fileEl = document.getElementById('file-' + fileIdx);
+  if (!fileEl) return;
+  const rows = Array.from(fileEl.querySelectorAll('.diff-line'));
+  let inRange = false;
+  for (const row of rows) {
+    const oldNum = parseInt(row.dataset.oldLine) || null;
+    const newNum = parseInt(row.dataset.newLine) || null;
+    // Check if this row is the start of the range
+    if (!inRange && ((startOld && oldNum === startOld) || (startNew && newNum === startNew))) {
+      inRange = true;
+    }
+    if (inRange) {
+      row.classList.add('selected-line');
+      row.querySelectorAll('.line-num').forEach(td => td.classList.add('selected'));
+    }
+    // Check if this row is the end of the range
+    if (inRange && ((endOld && oldNum === endOld) || (endNew && newNum === endNew))) {
+      break;
+    }
+  }
+}
+
 function insertInlineCommentForm() {
   if (!state.selectionStart || !state.selectionEnd) return;
 
@@ -838,10 +861,23 @@ function insertInlineCommentForm() {
     const fc = getFileComments(filePath);
     fc.inline.push({ id: genId(), startOld, startNew, endOld, endNew, text, timestamp: Date.now() });
     saveComments();
+
+    // Preserve scroll position across re-render
+    const mainContent = document.getElementById('main-content');
+    const savedScroll = mainContent.scrollTop;
+
     formRow.remove();
     clearSelection();
     renderDiff();
     renderFileTree();
+
+    // Restore scroll position instantly (bypass smooth scrolling)
+    mainContent.style.scrollBehavior = 'auto';
+    mainContent.scrollTop = savedScroll;
+    mainContent.style.scrollBehavior = '';
+
+    // Highlight the lines that were just commented on
+    highlightCommentedLines(fileIdx, startOld, startNew, endOld, endNew);
   });
 
   actionsDiv.appendChild(cancelBtn);
