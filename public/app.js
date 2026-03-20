@@ -16,6 +16,7 @@ const state = {
   selectionStart: null,
   selectionEnd: null,
   fileCache: {},
+  collapsedFiles: new Set(),
 };
 
 // === Helpers ===
@@ -31,6 +32,7 @@ function loadComments() {
       if (data.comments) {
         state.comments = data.comments;
         if (data.sidebarWidth) applySidebarWidth(data.sidebarWidth);
+        if (data.collapsedFiles) state.collapsedFiles = new Set(data.collapsedFiles);
       } else {
         // Legacy format: raw comments object
         state.comments = data;
@@ -47,6 +49,7 @@ function saveComments() {
   localStorage.setItem(storageKey(), JSON.stringify({
     comments: state.comments,
     sidebarWidth,
+    collapsedFiles: Array.from(state.collapsedFiles),
   }));
 }
 
@@ -532,10 +535,22 @@ function buildFileBox(file, idx) {
 
   box.appendChild(body);
 
-  // Toggle collapse
+  // Apply persisted collapse state
+  if (state.collapsedFiles.has(file.path)) {
+    body.classList.add('collapsed');
+    toggle.classList.add('collapsed');
+  }
+
+  // Toggle collapse and persist
   header.addEventListener('click', () => {
     body.classList.toggle('collapsed');
     toggle.classList.toggle('collapsed');
+    if (body.classList.contains('collapsed')) {
+      state.collapsedFiles.add(file.path);
+    } else {
+      state.collapsedFiles.delete(file.path);
+    }
+    saveComments();
   });
 
   return box;
