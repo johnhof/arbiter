@@ -18,7 +18,24 @@ Identify:
 
 If the user doesn't specify, use sensible defaults. If the current branch is `main`, ask which branch to review.
 
-### 2. Build and present the link
+### 2. Sync with main
+
+Before generating the review link, merge `main` into the current branch to ensure the diff is up to date:
+
+```bash
+git fetch origin main && git merge origin/main --no-edit
+```
+
+- If the merge succeeds cleanly, proceed normally to step 3.
+- If the merge results in conflicts, abort it immediately:
+  ```bash
+  git merge --abort
+  ```
+  Then continue to step 3, but prepend the following warning before presenting the link:
+
+  > **⚠ WARNING: Merge conflicts detected. This branch has conflicts with `main` that must be resolved before a clean diff can be viewed. The link below may show an incomplete or misleading diff.**
+
+### 3. Build and present the link
 
 Construct the URL with query parameters:
 
@@ -32,7 +49,7 @@ URL-encode the path and branch names. Present the link to the user:
 >
 > Review the diff, leave your comments, then click **Accept Prompt** when done. I'll pick up your comments automatically.
 
-### 3. Poll for the accepted prompt
+### 4. Poll for the accepted prompt
 
 After presenting the link, poll the Arbiter server using a **single bash command** that shows live status updates. Replace the placeholder variables with URL-encoded values from step 1:
 
@@ -48,7 +65,7 @@ BASE="http://localhost:7429/api/prompts?path=<url-encoded-path>&source=<url-enco
     -H "Content-Type: application/json" -d '{"read": true}'
   ```
 
-### 4. Process the prompt
+### 5. Process the prompt
 
 The `markdown` field in the response contains the structured review prompt. Follow its embedded instructions:
 
@@ -58,7 +75,7 @@ The `markdown` field in the response contains the structured review prompt. Foll
 4. **Wait for approval** — the user may modify, reject, or redirect items before you proceed
 5. Execute the approved plan, then verify no comment was missed
 
-### 5. If the server isn't running
+### 6. If the server isn't running
 
 If polling fails with a connection error, the Arbiter server may not be running. Tell the user:
 
@@ -68,7 +85,7 @@ If polling fails with a connection error, the Arbiter server may not be running.
 > ```
 > If `arbiter` is not installed, install it globally: `npm install -g .` from the Arbiter repo directory.
 
-### 6. After applying changes
+### 7. After applying changes
 
 After applying all requested changes, offer to review again:
 
