@@ -51,7 +51,9 @@ URL-encode the path and branch names. Present the link to the user:
 
 ### 4. Poll for the accepted prompt
 
-After presenting the link, poll the Arbiter server using a **single bash command** that shows live status updates. Replace the placeholder variables with URL-encoded values from step 1:
+After presenting the link, poll the Arbiter server using a **single bash command** that shows live status updates. Replace the placeholder variables with URL-encoded values from step 1.
+
+Poll `/api/prompts` with query params `path`, `source`, and `target` — **do NOT include `readonly=true`**, as the server uses each request to update the `lastAccess` timestamp that the UI uses to show the agent is connected. The response will be `{"error":"No prompt found"}` (404) until the user submits; once submitted it returns `{"markdown":"...","read":false}`. Loop until `"read":false` appears in the response.
 
 ```bash
 BASE="http://localhost:7429/api/prompts?path=<url-encoded-path>&source=<url-encoded-source>&target=<url-encoded-target>"; while true; do RESP=$(curl -s -w "\n%{http_code}" "$BASE"); CODE=$(echo "$RESP" | tail -1); BODY=$(echo "$RESP" | sed '$d'); if [ "$CODE" = "200" ]; then READ=$(echo "$BODY" | grep -o '"read":[a-z]*' | cut -d: -f2); if [ "$READ" = "false" ]; then printf "\rChecking for prompt... Retrieved!\n"; echo "$BODY"; break; else printf "\rChecking for prompt... None (read=true)"; fi; else printf "\rChecking for prompt... None            "; fi; sleep 1; done
@@ -83,7 +85,7 @@ If polling fails with a connection error, the Arbiter server may not be running.
 > ```bash
 > arbiter &
 > ```
-> If `arbiter` is not installed, install it globally: `npm install -g .` from the Arbiter repo directory.
+> If `arbiter` is not installed, install it globally: `npm install -g @johnhof/arbiter`
 
 ### 7. After applying changes
 
