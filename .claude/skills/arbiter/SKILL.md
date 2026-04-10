@@ -14,16 +14,31 @@ Generate a URL that opens Arbiter pre-loaded with the correct repo, source branc
 Identify:
 - **Repo path**: The repository to review (default: current working directory's git root via `git rev-parse --show-toplevel`)
 - **Source branch**: The branch being reviewed (default: current branch via `git symbolic-ref --short HEAD`)
-- **Target branch**: The base branch (default: `main`)
+- **Target branch**: The base branch (default: `arbiter/main` — see step 2)
 
 If the user doesn't specify, use sensible defaults. If the current branch is `main`, ask which branch to review.
 
-### 2. Sync with main
+### 2. Prepare the arbiter target branch
 
-Before generating the review link, merge `main` into the current branch to ensure the diff is up to date:
+Before generating the review link, create a fresh `arbiter/<primary>` branch hard-reset to the remote primary branch. This gives a guaranteed up-to-date comparison target without touching the user's local `main`.
+
+Determine the primary branch name (default: `main`; use whatever the user specified as target). Then run:
 
 ```bash
-git fetch origin main && git merge origin/main --no-edit
+git fetch origin <primary> && \
+git branch -f arbiter/<primary> origin/<primary>
+```
+
+- `git branch -f` creates the branch if it doesn't exist, or force-updates it to `origin/<primary>` if it does — no checkout required, no risk to local `main`.
+- Use `arbiter/<primary>` (e.g. `arbiter/main`) as the **target branch** in the URL from this point forward.
+- If the fetch fails (no remote), fall back to using the local `<primary>` branch and warn:
+
+  > **⚠ WARNING: Could not fetch `origin/<primary>`. Falling back to local `<primary>` which may be stale.**
+
+Then, attempt to merge `arbiter/<primary>` into the current source branch to check for conflicts:
+
+```bash
+git merge arbiter/<primary> --no-edit
 ```
 
 - If the merge succeeds cleanly, proceed normally to step 3.
@@ -33,19 +48,19 @@ git fetch origin main && git merge origin/main --no-edit
   ```
   Then continue to step 3, but prepend the following warning before presenting the link:
 
-  > **⚠ WARNING: Merge conflicts detected. This branch has conflicts with `main` that must be resolved before a clean diff can be viewed. The link below may show an incomplete or misleading diff.**
+  > **⚠ WARNING: Merge conflicts detected. This branch has conflicts with `<primary>` that must be resolved before a clean diff can be viewed. The link below may show an incomplete or misleading diff.**
 
 ### 3. Build and present the link
 
-Construct the URL with query parameters:
+Construct the URL with query parameters, using `arbiter/<primary>` as the target:
 
 ```
-http://localhost:7429/?path=<repo-path>&source=<source-branch>&target=<target-branch>&export=accept
+http://localhost:7429/?path=<repo-path>&source=<source-branch>&target=arbiter/<primary>&export=accept
 ```
 
 URL-encode the path and branch names. Present the link to the user:
 
-> **[Open in Arbiter](http://localhost:7429/?path=%2Fpath%2Fto%2Frepo&source=feature-branch&target=main&export=accept)**
+> **[Open in Arbiter](http://localhost:7429/?path=%2Fpath%2Fto%2Frepo&source=feature-branch&target=arbiter%2Fmain&export=accept)**
 >
 > Review the diff, leave your comments, then click **Accept Prompt** when done. I'll pick up your comments automatically.
 
