@@ -548,7 +548,8 @@ function buildFileBox(file, idx) {
     if (body.classList.contains('collapsed')) {
       state.collapsedFiles.add(file.path);
       const allFiles = Array.from(document.querySelectorAll('.diff-file'));
-      const nextFile = allFiles[allFiles.indexOf(box) + 1];
+      const currentIdx = allFiles.indexOf(box);
+      const nextFile = allFiles.slice(currentIdx + 1).find(f => !f.querySelector('.diff-file-body').classList.contains('collapsed'));
       if (nextFile) {
         const mainContent = document.getElementById('main-content');
         mainContent.scrollTo({ top: nextFile.offsetTop, behavior: 'smooth' });
