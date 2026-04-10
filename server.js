@@ -8,8 +8,8 @@ const app = express();
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.json());
 
-function git(args, cwd) {
-  return execFileSync('git', args, { cwd, encoding: 'utf-8', maxBuffer: 50 * 1024 * 1024 });
+function git(args, cwd, opts = {}) {
+  return execFileSync('git', args, { cwd, encoding: 'utf-8', maxBuffer: 50 * 1024 * 1024, ...opts });
 }
 
 function isGitRepo(dir) {
@@ -57,7 +57,7 @@ function parseGitAttributes(repoPath, branch) {
   try {
     let content;
     try {
-      content = git(['show', `${branch}:.gitattributes`], repoPath);
+      content = git(['show', `${branch}:.gitattributes`], repoPath, { stdio: ['pipe', 'pipe', 'pipe'] });
     } catch {
       const attrPath = path.join(repoPath, '.gitattributes');
       if (fs.existsSync(attrPath)) {
